@@ -1,14 +1,119 @@
 ---
-import ArchivePanel from "@components/ArchivePanel.svelte";
-import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
-import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPostsList } from "../utils/content-utils";
+import Icon from "../components/Icon.astro";
+import PostCard from "../components/PostCard.astro";
+import Base from "../layouts/Base.astro";
+import { getPosts, groupByYear } from "../lib/posts";
 
-const sortedPostsList = await getSortedPostsList();
+const posts = await getPosts();
+const years = groupByYear(posts);
 ---
 
-<MainGridLayout title={i18n(I18nKey.archive)}>
-    <ArchivePanel sortedPosts={sortedPostsList} client:only="svelte"></ArchivePanel>
-</MainGridLayout>
+<Base title="Archive" description="Toàn bộ bài viết theo dòng thời gian.">
+	<header class="shell page-header">
+		<p class="page-eyebrow"><Icon name="calendar" size={14} /> git log --all</p>
+		<h1 class="page-title">Archive</h1>
+		<p class="page-lede">{posts.length} bài viết, sắp xếp theo thời gian.</p>
+		<p class="filter-note" data-archive-note hidden>
+			Đang lọc theo <strong data-archive-tag></strong>
+			<a href="/archive/">Bỏ lọc</a>
+		</p>
+	</header>
 
+	<div class="shell timeline">
+		{
+			years.map((y) => (
+				<section class="year" data-year>
+					<h2 class="year-label">
+						<span>{y.key}</span>
+						<span class="year-count" data-year-count>{y.items.length}</span>
+					</h2>
+					<div class="year-items">
+						{y.items.map((p, i) => (
+							<div data-archive-item data-tags={JSON.stringify(p.data.tags)} data-category={p.data.category}>
+								<PostCard post={p} variant="row" index={i} />
+							</div>
+						))}
+					</div>
+				</section>
+			))
+		}
+	</div>
+</Base>
+
+<style>
+	.filter-note {
+		margin-top: 1rem;
+		display: inline-flex;
+		gap: 0.75rem;
+		align-items: center;
+		padding: 0.5rem 0.85rem;
+		font-size: 0.85rem;
+		color: var(--fg-dim);
+		background: var(--accent-soft);
+		border: 1px solid var(--accent-line);
+		border-radius: 9px;
+	}
+	.filter-note[hidden] { display: none; }
+	.filter-note strong { color: var(--fg); }
+	.filter-note a { color: var(--accent); }
+
+	.timeline { display: grid; gap: 2.5rem; }
+	.year {
+		display: grid;
+		grid-template-columns: 8rem 1fr;
+		gap: 1.5rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--line);
+	}
+	.year[hidden] { display: none; }
+	.year-label {
+		position: sticky;
+		top: calc(var(--nav-height) + 1.5rem);
+		align-self: start;
+		display: flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		font-family: var(--font-mono);
+		font-size: 1.6rem;
+		font-weight: 700;
+		color: var(--fg);
+	}
+	.year-count {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--accent);
+	}
+	.year-items { display: grid; gap: 0.15rem; }
+	[data-archive-item][hidden] { display: none; }
+	@media (max-width: 760px) {
+		.year { grid-template-columns: 1fr; gap: 0.75rem; }
+		.year-label { position: static; }
+	}
+</style>
+
+<script>
+	// Old links point at /archive/?tag=X; keep them working.
+	const params = new URLSearchParams(location.search);
+	const tag = params.get("tag");
+	const category = params.get("category");
+	if (tag || category) {
+		const note = document.querySelector<HTMLElement>("[data-archive-note]");
+		const label = document.querySelector<HTMLElement>("[data-archive-tag]");
+		if (note && label) {
+			note.hidden = false;
+			label.textContent = tag ? `#${tag}` : category!;
+		}
+		for (const year of document.querySelectorAll<HTMLElement>("[data-year]")) {
+			let shown = 0;
+			for (const item of year.querySelectorAll<HTMLElement>("[data-archive-item]")) {
+				const tags: string[] = JSON.parse(item.dataset.tags || "[]");
+				const ok = (!tag || tags.includes(tag)) && (!category || item.dataset.category === category);
+				item.hidden = !ok;
+				if (ok) shown++;
+			}
+			year.hidden = shown === 0;
+			const c = year.querySelector("[data-year-count]");
+			if (c) c.textContent = String(shown);
+		}
+	}
+</script>

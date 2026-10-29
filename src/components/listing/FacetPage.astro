@@ -1,0 +1,40 @@
+---
+import Base from "../../layouts/Base.astro";
+import type { Post } from "../../lib/posts";
+import Icon from "../Icon.astro";
+import PostCard from "../PostCard.astro";
+
+interface Props {
+	kind: "tag" | "category";
+	name: string;
+	posts: Post[];
+	minutes: Map<string, number>;
+	hue?: number;
+}
+const { kind, name, posts, minutes, hue } = Astro.props;
+const label = kind === "tag" ? `#${name}` : name;
+---
+
+<Base title={label} description={`${posts.length} bài viết ${kind === "tag" ? "gắn tag" : "trong danh mục"} ${name}.`} accentHue={hue}>
+	<header class="shell page-header">
+		<p class="page-eyebrow">
+			<Icon name={kind === "tag" ? "hash" : "folder"} size={14} />
+			{kind === "tag" ? "Tag" : "Danh mục"}
+		</p>
+		<h1 class="page-title">{label}</h1>
+		<p class="page-lede">{posts.length} bài viết.</p>
+		<p class="back"><a href={kind === "tag" ? "/tags/" : "/blog/"} class="section-link"><Icon name="arrow-left" size={14} /> {kind === "tag" ? "Mọi tag" : "Tất cả bài viết"}</a></p>
+	</header>
+	<div class="shell grid">
+		{posts.map((p, i) => <PostCard post={p} index={i} eager={i < 3} minutes={minutes.get(p.id)} />)}
+	</div>
+</Base>
+
+<style>
+	.back { margin-top: 1.25rem; }
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.25rem;
+	}
+</style>

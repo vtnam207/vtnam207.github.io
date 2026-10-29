@@ -1,0 +1,97 @@
+---
+import Icon from "../../components/Icon.astro";
+import { themeForCategory } from "../../config";
+import Base from "../../layouts/Base.astro";
+import { categoriesOf, facetSlug, getPosts, tagsOf } from "../../lib/posts";
+
+const posts = await getPosts();
+const tags = tagsOf(posts);
+const categories = categoriesOf(posts);
+const max = Math.max(1, ...tags.map((t) => t.count));
+---
+
+<Base title="Tags" description="Mọi chủ đề trên blog.">
+	<header class="shell page-header">
+		<p class="page-eyebrow"><Icon name="hash" size={14} /> grep -r</p>
+		<h1 class="page-title">Chủ đề</h1>
+		<p class="page-lede">{categories.length} danh mục · {tags.length} tag.</p>
+	</header>
+
+	<div class="shell">
+		<h2 class="mono-label sub">Danh mục</h2>
+		<div class="cats">
+			{
+				categories.map((c) => (
+					<a href={`/categories/${facetSlug(c.name)}/`} class="cat card" style={`--chip-h: ${themeForCategory(c.name).hue}`}>
+						<span class="cat-icon"><Icon name="folder" size={18} /></span>
+						<span class="cat-name">{c.name}</span>
+						<span class="cat-count">{c.count} bài</span>
+					</a>
+				))
+			}
+		</div>
+
+		<h2 class="mono-label sub">Tags</h2>
+		<div class="cloud">
+			{
+				tags.map((t) => (
+					<a href={`/tags/${facetSlug(t.name)}/`} class="cloud-tag" style={`--w: ${0.85 + (t.count / max) * 0.6}`}>
+						<span class="hash">#</span>{t.name}
+						<span class="chip-count">{t.count}</span>
+					</a>
+				))
+			}
+		</div>
+	</div>
+</Base>
+
+<style>
+	.sub { margin: 0 0 1rem; }
+	.cats {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 1rem;
+		margin-bottom: 3rem;
+	}
+	.cat {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		grid-template-rows: auto auto;
+		column-gap: 0.9rem;
+		align-items: center;
+		padding: 1.1rem 1.2rem;
+		transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
+	}
+	.cat:hover { border-color: hsl(var(--chip-h) 70% 65% / 0.45); transform: translateY(-2px); }
+	.cat-icon {
+		grid-row: span 2;
+		display: grid;
+		place-items: center;
+		width: 42px;
+		height: 42px;
+		border-radius: 11px;
+		color: hsl(var(--chip-h) 85% 72%);
+		background: hsl(var(--chip-h) 80% 65% / 0.12);
+		border: 1px solid hsl(var(--chip-h) 80% 65% / 0.28);
+	}
+	:global(:root[data-theme="light"]) .cat-icon { color: hsl(var(--chip-h) 70% 40%); }
+	.cat-name { font-weight: 600; color: var(--fg); }
+	.cat-count { font-family: var(--font-mono); font-size: 0.75rem; color: var(--fg-faint); }
+
+	.cloud { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+	.cloud-tag {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.3rem;
+		padding: 0.5rem 0.9rem;
+		font-size: calc(0.95rem * var(--w));
+		font-weight: 550;
+		color: var(--fg-dim);
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		transition: all 200ms var(--ease-out);
+	}
+	.cloud-tag:hover { color: var(--fg); border-color: var(--accent-line); transform: translateY(-2px); }
+	.hash { color: var(--accent); font-family: var(--font-mono); }
+</style>

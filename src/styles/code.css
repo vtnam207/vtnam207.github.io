@@ -1,0 +1,106 @@
+/*
+ * Expressive Code overrides.
+ *
+ * Expressive Code ships its own theme; we re-point its CSS variables at the
+ * site tokens so fenced code sits in the same surface family as cards and
+ * follows the light/dark switch instead of staying permanently dark.
+ */
+
+.expressive-code {
+	margin: 1.7em 0;
+	font-size: 0.875rem;
+}
+
+.expressive-code .frame {
+	border-radius: var(--radius);
+	box-shadow: none;
+}
+
+.expressive-code .frame pre {
+	background: var(--surface-2) !important;
+	border: 1px solid var(--line) !important;
+	border-radius: var(--radius) !important;
+}
+
+.expressive-code .frame.has-title pre,
+.expressive-code .frame.is-terminal pre {
+	border-top-left-radius: 0 !important;
+	border-top-right-radius: 0 !important;
+}
+
+/* Title bar / terminal chrome */
+.expressive-code .frame .header {
+	background: var(--surface-3) !important;
+	border: 1px solid var(--line) !important;
+	border-bottom: none !important;
+	border-radius: var(--radius) var(--radius) 0 0 !important;
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	color: var(--fg-dim);
+}
+
+.expressive-code .frame .title {
+	color: var(--fg-dim) !important;
+	background: transparent !important;
+	border: none !important;
+}
+.expressive-code .frame .title::after {
+	display: none;
+}
+
+.expressive-code code {
+	font-family: var(--font-mono) !important;
+	font-variant-ligatures: none;
+}
+
+/* Line numbers */
+.expressive-code .gutter .ln {
+	color: var(--fg-faint) !important;
+	opacity: 0.55;
+}
+
+/* Copy button — restyled to match the site's buttons. */
+.expressive-code .copy button {
+	background: var(--surface-3) !important;
+	border: 1px solid var(--line) !important;
+	border-radius: var(--radius-sm) !important;
+	transition: all 180ms var(--ease-out);
+}
+.expressive-code .copy button:hover {
+	background: var(--accent-soft) !important;
+	border-color: var(--accent-line) !important;
+}
+.expressive-code .copy button::before {
+	border: none !important;
+}
+.expressive-code .copy button div {
+	background: var(--surface-3) !important;
+	color: var(--fg) !important;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-sm);
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+}
+
+/* Language badge injected by the local expressive-code plugin. */
+.expressive-code .language-badge {
+	position: absolute;
+	top: 0.45rem;
+	right: 3.1rem;
+	font-family: var(--font-mono);
+	font-size: 0.6875rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--fg-faint);
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 200ms var(--ease-out);
+}
+.expressive-code:hover .language-badge {
+	opacity: 1;
+}
+
+/* Scrollbar inside code blocks */
+.expressive-code pre::-webkit-scrollbar-thumb {
+	border-color: var(--surface-2);
+}

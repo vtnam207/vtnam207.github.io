@@ -1,0 +1,29 @@
+---
+import FacetPage from "../../components/listing/FacetPage.astro";
+import { themeForCategory } from "../../config";
+import {
+	categoriesOf,
+	facetSlug,
+	getPosts,
+	type Post,
+	withMinutes,
+} from "../../lib/posts";
+
+export async function getStaticPaths() {
+	const posts = await getPosts();
+	return categoriesOf(posts).map((c) => ({
+		params: { category: facetSlug(c.name) },
+		props: {
+			name: c.name,
+			posts: posts.filter((p) => p.data.category === c.name),
+		},
+	}));
+}
+
+const { name, posts } = Astro.props as { name: string; posts: Post[] };
+const minutes = new Map(
+	(await withMinutes(posts)).map((x) => [x.post.id, x.minutes]),
+);
+---
+
+<FacetPage kind="category" name={name} posts={posts} minutes={minutes} hue={themeForCategory(name).hue} />

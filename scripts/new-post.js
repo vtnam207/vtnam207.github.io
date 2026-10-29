@@ -1,59 +1,56 @@
-/* This is a script to create a new post markdown file with front-matter */
+/* Create a new post with frontmatter, then generate its cover art. */
 
-import fs from "fs"
-import path from "path"
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
-function getDate() {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, "0")
-  const day = String(today.getDate()).padStart(2, "0")
+const today = new Date().toISOString().slice(0, 10);
+const [name, ...rest] = process.argv.slice(2);
 
-  return `${year}-${month}-${day}`
+if (!name) {
+	console.error("Usage: pnpm new-post <slug> [--ctf \"CTF name\"] [--category \"Reverse Engineering\"]");
+	process.exit(1);
 }
 
-const args = process.argv.slice(2)
+const flag = (key) => {
+	const i = rest.indexOf(`--${key}`);
+	return i !== -1 ? rest[i + 1] ?? "" : "";
+};
 
-if (args.length === 0) {
-  console.error(`Error: No filename argument provided
-Usage: npm run new-post -- <filename>`)
-  process.exit(1) // Terminate the script and return error code 1
+const slug = name.replace(/\.(md|mdx)$/i, "");
+const file = path.join("src/content/posts", `${slug}.md`);
+
+if (fs.existsSync(file)) {
+	console.error(`Error: ${file} already exists`);
+	process.exit(1);
 }
 
-let fileName = args[0]
+const ctf = flag("ctf");
+const category = flag("category") || (ctf ? "Reverse Engineering" : "Notes");
+const title = ctf || slug.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-// Add .md extension if not present
-const fileExtensionRegex = /\.(md|mdx)$/i
-if (!fileExtensionRegex.test(fileName)) {
-  fileName += ".md"
-}
-
-const targetDir = "./src/content/posts/"
-const fullPath = path.join(targetDir, fileName)
-
-if (fs.existsSync(fullPath)) {
-  console.error(`Error: File ${fullPath} already exists `)
-  process.exit(1)
-}
-
-// recursive mode creates multi-level directories
-const dirPath = path.dirname(fullPath)
-if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true })
-}
-
-const content = `---
-title: ${args[0]}
-published: ${getDate()}
-description: ''
-image: ''
+fs.mkdirSync(path.dirname(file), { recursive: true });
+fs.writeFileSync(
+	file,
+	`---
+title: "${title}"
+published: ${today}
+description: ""
+${ctf ? `ctf: "${ctf}"\n` : ""}category: "${category}"
 tags: []
-category: ''
-draft: false 
-lang: ''
+lang: vi
+draft: true
+# cover: ""      # optional; generated art is used when empty
+# featured: true # pin to the home page
 ---
-`
 
-fs.writeFileSync(path.join(targetDir, fileName), content)
+`,
+);
+console.log(`Created ${file}`);
 
-console.log(`Post ${fullPath} created`)
+// Cover art needs the fonts installed locally; skip quietly if that fails.
+try {
+	execFileSync("node", ["scripts/generate-covers.mjs", "--missing"], { stdio: "inherit" });
+} catch {
+	console.warn("Could not generate cover art — run `pnpm covers` later.");
+}

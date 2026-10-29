@@ -1,0 +1,78 @@
+/*
+ * Design tokens.
+ *
+ * Two themes share one set of names. Everything downstream (components,
+ * prose, code blocks) reads these and nothing else, so retheming the site
+ * means editing this file only.
+ *
+ * Colours are authored in HSL channels so a component can build a tinted
+ * variant inline — e.g. hsl(var(--accent-h) var(--accent-s) var(--accent-l) / .12)
+ * for a glow — without needing a second token per opacity.
+ */
+
+:root {
+	/* Accent hue is overridden per-category on post pages. */
+	--accent-h: 265;
+	--accent-s: 89%;
+	--accent-l: 72%;
+
+	--accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
+	--accent-soft: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.14);
+	--accent-line: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.32);
+	--accent-glow: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.22);
+
+	--radius-sm: 6px;
+	--radius: 10px;
+	--radius-lg: 16px;
+	--radius-xl: 22px;
+
+	--font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system,
+		"Segoe UI", sans-serif;
+	--font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace,
+		SFMono-Regular, Menlo, Consolas, monospace;
+
+	--content-width: 72rem;
+	--prose-width: 46rem;
+	--nav-height: 60px;
+
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+	/* Dark is the default: the site is read mostly at night. */
+	--bg: hsl(230 24% 6%);
+	--bg-soft: hsl(230 22% 8%);
+	--surface: hsl(230 20% 10%);
+	--surface-2: hsl(230 18% 13%);
+	--surface-3: hsl(230 16% 17%);
+	--line: hsl(230 14% 19%);
+	--line-soft: hsl(230 14% 15%);
+	--fg: hsl(230 25% 94%);
+	--fg-dim: hsl(230 12% 68%);
+	--fg-faint: hsl(230 10% 48%);
+	--shadow-sm: 0 1px 2px hsl(230 40% 2% / 0.5);
+	--shadow: 0 8px 24px -8px hsl(230 40% 2% / 0.7);
+	--shadow-lg: 0 24px 60px -20px hsl(230 40% 2% / 0.85);
+	--selection: hsl(var(--accent-h) 70% 60% / 0.3);
+	color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+	--accent-l: 48%;
+	--accent-s: 76%;
+
+	--bg: hsl(240 24% 98%);
+	--bg-soft: hsl(240 20% 96%);
+	--surface: hsl(0 0% 100%);
+	--surface-2: hsl(240 22% 97%);
+	--surface-3: hsl(240 18% 94%);
+	--line: hsl(240 16% 89%);
+	--line-soft: hsl(240 16% 93%);
+	--fg: hsl(235 32% 13%);
+	--fg-dim: hsl(235 12% 40%);
+	--fg-faint: hsl(235 10% 54%);
+	--shadow-sm: 0 1px 2px hsl(235 30% 40% / 0.07);
+	--shadow: 0 8px 24px -10px hsl(235 30% 35% / 0.16);
+	--shadow-lg: 0 24px 60px -24px hsl(235 30% 30% / 0.22);
+	--selection: hsl(var(--accent-h) 70% 55% / 0.22);
+	color-scheme: light;
+}

@@ -1,0 +1,87 @@
+---
+/** Click-to-zoom for screenshots inside posts. No dependency, ~1 KB. */
+---
+
+<div class="lightbox" data-lightbox hidden>
+	<button type="button" class="lightbox-close" aria-label="Đóng">×</button>
+	<img alt="" data-lightbox-img />
+	<p class="lightbox-caption" data-lightbox-caption></p>
+</div>
+
+<style>
+	.lightbox {
+		position: fixed;
+		inset: 0;
+		z-index: 120;
+		display: grid;
+		place-items: center;
+		grid-template-rows: 1fr auto;
+		padding: 2rem;
+		background: hsl(230 30% 3% / 0.9);
+		backdrop-filter: blur(6px);
+		cursor: zoom-out;
+		animation: lb-in 200ms var(--ease-out);
+	}
+	.lightbox[hidden] { display: none; }
+	@keyframes lb-in { from { opacity: 0; } }
+	.lightbox img {
+		max-width: min(100%, 1600px);
+		max-height: calc(100dvh - 6rem);
+		object-fit: contain;
+		border-radius: 10px;
+		box-shadow: 0 30px 80px -20px #000;
+		animation: lb-zoom 260ms var(--ease-out);
+	}
+	@keyframes lb-zoom { from { transform: scale(0.96); opacity: 0.4; } }
+	.lightbox-caption {
+		margin: 0.85rem 0 0;
+		color: hsl(230 15% 75%);
+		font-family: var(--font-mono);
+		font-size: 0.8rem;
+	}
+	.lightbox-caption:empty { display: none; }
+	.lightbox-close {
+		position: absolute;
+		top: 1rem;
+		right: 1.25rem;
+		width: 40px;
+		height: 40px;
+		font-size: 1.6rem;
+		line-height: 1;
+		color: #fff;
+		background: hsl(0 0% 100% / 0.08);
+		border: 1px solid hsl(0 0% 100% / 0.14);
+		border-radius: 10px;
+		cursor: pointer;
+	}
+</style>
+
+<script>
+	function initLightbox() {
+		const box = document.querySelector<HTMLElement>("[data-lightbox]");
+		if (!box) return;
+		const img = box.querySelector<HTMLImageElement>("[data-lightbox-img]")!;
+		const cap = box.querySelector<HTMLElement>("[data-lightbox-caption]")!;
+
+		const close = () => {
+			box.hidden = true;
+			document.body.style.overflow = "";
+		};
+
+		document.addEventListener("click", (e) => {
+			const target = (e.target as HTMLElement).closest<HTMLImageElement>(".prose img");
+			if (target?.closest("a")) return;
+			if (!target) return;
+			img.src = target.currentSrc || target.src;
+			img.alt = target.alt;
+			cap.textContent = target.closest("figure")?.querySelector("figcaption")?.textContent ?? "";
+			box.hidden = false;
+			document.body.style.overflow = "hidden";
+		});
+		box.addEventListener("click", close);
+		document.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && !box.hidden) close();
+		});
+	}
+	initLightbox();
+</script>

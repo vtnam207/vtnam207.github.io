@@ -1,0 +1,268 @@
+---
+import Hero from "../components/home/Hero.astro";
+import Icon from "../components/Icon.astro";
+import PostCard from "../components/PostCard.astro";
+import { author, themeForCategory } from "../config";
+import Base from "../layouts/Base.astro";
+import { formatDate } from "../lib/format";
+import {
+	categoriesOf,
+	facetSlug,
+	getPosts,
+	groupByCtf,
+	statsOf,
+	tagsOf,
+	withMinutes,
+} from "../lib/posts";
+
+const posts = await getPosts();
+const withTime = await withMinutes(posts);
+const minutes = new Map(withTime.map((x) => [x.post.id, x.minutes]));
+
+const featured = posts.find((p) => p.data.featured) ?? posts[0];
+const recent = posts.filter((p) => p.id !== featured?.id).slice(0, 6);
+const ctfs = groupByCtf(posts).slice(0, 5);
+const tags = tagsOf(posts);
+const categories = categoriesOf(posts);
+const stats = statsOf(posts);
+---
+
+<Base>
+	<Hero stats={stats} />
+
+	{
+		featured && (
+			<section class="shell section">
+				<div class="section-head">
+					<h2 class="section-title">
+						<span class="idx">01</span>Bài mới nhất
+					</h2>
+					<a href="/blog/" class="section-link">
+						Tất cả bài viết <Icon name="arrow-right" size={15} />
+					</a>
+				</div>
+				<PostCard post={featured} variant="feature" eager minutes={minutes.get(featured.id)} />
+			</section>
+		)
+	}
+
+	{
+		recent.length > 0 && (
+			<section class="shell section">
+				<div class="section-head">
+					<h2 class="section-title">
+						<span class="idx">02</span>Gần đây
+					</h2>
+				</div>
+				<div class="card-grid">
+					{recent.map((p, i) => (
+						<PostCard post={p} index={i} minutes={minutes.get(p.id)} />
+					))}
+				</div>
+			</section>
+		)
+	}
+
+	<section class="shell section split">
+		<div>
+			<div class="section-head">
+				<h2 class="section-title">
+					<span class="idx">03</span>Write-ups theo giải
+				</h2>
+				<a href="/writeups/" class="section-link">
+					Xem hết <Icon name="arrow-right" size={15} />
+				</a>
+			</div>
+			<ol class="ctf-list">
+				{
+					ctfs.map((g) => (
+						<li>
+							<a href={`/writeups/#${facetSlug(g.key)}`} class="ctf-item">
+								<span class="ctf-icon">
+									<Icon name="flag" size={16} />
+								</span>
+								<span class="ctf-main">
+									<span class="ctf-name">{g.key}</span>
+									<span class="ctf-meta">
+										{formatDate(g.items[0].data.published)} · {g.items.length} bài
+									</span>
+								</span>
+								<Icon name="arrow-right" size={16} class="ctf-arrow" />
+							</a>
+						</li>
+					))
+				}
+			</ol>
+		</div>
+
+		<div>
+			<div class="section-head">
+				<h2 class="section-title">
+					<span class="idx">04</span>Chủ đề
+				</h2>
+				<a href="/tags/" class="section-link">
+					Mọi tag <Icon name="arrow-right" size={15} />
+				</a>
+			</div>
+			<div class="topics card">
+				<p class="mono-label">Danh mục</p>
+				<div class="chip-row">
+					{
+						categories.map((c) => (
+							<a href={`/categories/${facetSlug(c.name)}/`} class="chip chip-accent" style={`--chip-h: ${themeForCategory(c.name).hue}`}>
+								<Icon name="folder" size={12} />
+								{c.name}
+								<span class="chip-count">{c.count}</span>
+							</a>
+						))
+					}
+				</div>
+				<p class="mono-label" style="margin-top: 1.4rem">Tags</p>
+				<div class="chip-row">
+					{
+						tags.map((t) => (
+							<a href={`/tags/${facetSlug(t.name)}/`} class="chip">
+								#{t.name}
+								<span class="chip-count">{t.count}</span>
+							</a>
+						))
+					}
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="shell section">
+		<div class="uit card">
+			<div class="uit-glow" aria-hidden="true"></div>
+			<div class="uit-icon">
+				<Icon name="school" size={28} />
+			</div>
+			<div class="uit-copy">
+				<p class="mono-label">Hiện tại</p>
+				<h2>Sinh viên tại {author.school}</h2>
+				<p>
+					Mình đang học tại <strong>UIT — Trường Đại học Công nghệ Thông tin, ĐHQG-HCM</strong>. Ngoài giờ học, mình
+					chơi CTF, đọc assembly và ghi lại cách giải ở đây — để nhớ lâu hơn, và để ai đó đi sau đỡ mất thời gian.
+				</p>
+			</div>
+			<a href="/about/" class="btn">
+				Đọc thêm <Icon name="arrow-right" size={16} />
+			</a>
+		</div>
+	</section>
+</Base>
+
+<style>
+	.section {
+		margin-top: clamp(4rem, 9vw, 6rem);
+	}
+	.card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.25rem;
+	}
+
+	.split {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: clamp(2rem, 5vw, 3.5rem);
+	}
+	@media (max-width: 900px) {
+		.split { grid-template-columns: 1fr; }
+	}
+
+	.ctf-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.6rem;
+	}
+	.ctf-item {
+		display: flex;
+		align-items: center;
+		gap: 0.95rem;
+		padding: 0.95rem 1.1rem;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
+	}
+	.ctf-item:hover {
+		border-color: var(--accent-line);
+		transform: translateX(3px);
+	}
+	.ctf-icon {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 9px;
+		color: hsl(25 95% 62%);
+		background: hsl(25 95% 60% / 0.12);
+		border: 1px solid hsl(25 95% 60% / 0.25);
+		flex-shrink: 0;
+	}
+	.ctf-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+	.ctf-name { font-weight: 600; color: var(--fg); }
+	.ctf-meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--fg-faint); }
+	.ctf-item :global(.ctf-arrow) { color: var(--fg-faint); transition: color 200ms; }
+	.ctf-item:hover :global(.ctf-arrow) { color: var(--accent); }
+
+	.topics {
+		padding: 1.4rem;
+	}
+	.chip-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+
+	.uit {
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		padding: clamp(1.5rem, 4vw, 2.4rem);
+	}
+	.uit-glow {
+		position: absolute;
+		right: -10%;
+		top: -60%;
+		width: 50%;
+		height: 220%;
+		background: radial-gradient(closest-side, hsl(215 90% 60% / 0.16), transparent);
+		pointer-events: none;
+	}
+	.uit-icon {
+		display: grid;
+		place-items: center;
+		width: 64px;
+		height: 64px;
+		flex-shrink: 0;
+		border-radius: 16px;
+		color: hsl(215 95% 70%);
+		background: hsl(215 90% 60% / 0.12);
+		border: 1px solid hsl(215 90% 60% / 0.28);
+	}
+	:global(:root[data-theme="light"]) .uit-icon { color: hsl(215 80% 45%); }
+	.uit-copy { flex: 1; }
+	.uit-copy h2 {
+		margin-top: 0.35rem;
+		font-size: clamp(1.15rem, 2vw, 1.4rem);
+		color: var(--fg);
+	}
+	.uit-copy p:last-child {
+		margin: 0.55rem 0 0;
+		max-width: 46rem;
+		color: var(--fg-dim);
+		font-size: 0.95rem;
+	}
+	.uit-copy strong { color: var(--fg); font-weight: 600; }
+	@media (max-width: 760px) {
+		.uit { flex-direction: column; align-items: flex-start; }
+	}
+</style>

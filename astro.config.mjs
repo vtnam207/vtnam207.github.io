@@ -1,27 +1,23 @@
 import sitemap from "@astrojs/sitemap";
-import svelte from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import expressiveCode from "astro-expressive-code";
-import icon from "astro-icon";
 import { defineConfig } from "astro/config";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeComponents from "rehype-components"; /* Render the custom directive content */
+import rehypeComponents from "rehype-components";
 import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
-import remarkDirective from "remark-directive"; /* Handle directives */
+import remarkDirective from "remark-directive";
+import remarkDirectiveRehype from "remark-directive-rehype";
 import remarkGithubAdmonitionsToDirectives from "remark-github-admonitions-to-directives";
 import remarkMath from "remark-math";
-import remarkSectionize from "remark-sectionize";
-import { expressiveCodeConfig } from "./src/config.ts";
-import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
-import { GithubCardComponent } from "./src/plugins/rehype-component-github-card.mjs";
-import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
+import { rehypeFigures } from "./src/plugins/rehype-figures.mjs";
 import { remarkExcerpt } from "./src/plugins/remark-excerpt.js";
 import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
-import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
+
+const admonition = (type) => (props, children) => AdmonitionComponent(props, children, type);
 
 // https://astro.build/config
 export default defineConfig({
@@ -29,63 +25,31 @@ export default defineConfig({
 	base: "/",
 	trailingSlash: "always",
 	integrations: [
-		tailwind({
-			nesting: true,
-		}),
-
-		icon({
-			include: {
-				"preprocess: vitePreprocess(),": ["*"],
-				"fa6-brands": ["*"],
-				"fa6-regular": ["*"],
-				"fa6-solid": ["*"],
-			},
-		}),
+		tailwind({ applyBaseStyles: false, nesting: true }),
 		expressiveCode({
-			themes: [expressiveCodeConfig.theme, expressiveCodeConfig.theme],
-			plugins: [
-				pluginCollapsibleSections(),
-				pluginLineNumbers(),
-				pluginLanguageBadge(),
-				pluginCustomCopyButton()
-			],
+			themes: ["github-dark-dimmed", "github-light"],
+			// Follow the site's data-theme attribute rather than the OS setting.
+			themeCssSelector: (theme) =>
+				theme.type === "dark" ? ':root:not([data-theme="light"])' : ':root[data-theme="light"]',
+			useDarkModeMediaQuery: false,
+			plugins: [pluginCollapsibleSections(), pluginLineNumbers()],
 			defaultProps: {
 				wrap: true,
+				showLineNumbers: true,
 				overridesByLang: {
-					'shellsession': {
-						showLineNumbers: false,
-					},
+					"shellsession,sh,bash,console,text,plaintext,txt": { showLineNumbers: false },
 				},
 			},
 			styleOverrides: {
-				codeBackground: "var(--codeblock-bg)",
-				borderRadius: "0.75rem",
-				borderColor: "none",
-				codeFontSize: "0.875rem",
-				codeFontFamily: "'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-				codeLineHeight: "1.5rem",
-				frames: {
-					editorBackground: "var(--codeblock-bg)",
-					terminalBackground: "var(--codeblock-bg)",
-					terminalTitlebarBackground: "var(--codeblock-topbar-bg)",
-					editorTabBarBackground: "var(--codeblock-topbar-bg)",
-					editorActiveTabBackground: "none",
-					editorActiveTabIndicatorBottomColor: "var(--primary)",
-					editorActiveTabIndicatorTopColor: "none",
-					editorTabBarBorderBottomColor: "var(--codeblock-topbar-bg)",
-					terminalTitlebarBorderBottomColor: "none"
-				},
-				textMarkers: {
-					delHue: 0,
-					insHue: 180,
-					markHue: 250
-				}
+				borderRadius: "10px",
+				codeFontSize: "0.85rem",
+				codeLineHeight: "1.6",
+				codeFontFamily: "var(--font-mono)",
+				uiFontFamily: "var(--font-sans)",
+				codePaddingBlock: "0.95rem",
+				codePaddingInline: "1.1rem",
 			},
-			frames: {
-				showCopyToClipboardButton: false,
-			}
 		}),
-        svelte(),
 		sitemap(),
 	],
 	markdown: {
@@ -95,8 +59,7 @@ export default defineConfig({
 			remarkExcerpt,
 			remarkGithubAdmonitionsToDirectives,
 			remarkDirective,
-			remarkSectionize,
-			parseDirectiveNode,
+			remarkDirectiveRehype,
 		],
 		rehypePlugins: [
 			rehypeKatex,
@@ -105,54 +68,26 @@ export default defineConfig({
 				rehypeComponents,
 				{
 					components: {
-						github: GithubCardComponent,
-						note: (x, y) => AdmonitionComponent(x, y, "note"),
-						tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-						important: (x, y) => AdmonitionComponent(x, y, "important"),
-						caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-						warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+						note: admonition("note"),
+						tip: admonition("tip"),
+						important: admonition("important"),
+						caution: admonition("caution"),
+						warning: admonition("warning"),
 					},
 				},
 			],
 			[
 				rehypeAutolinkHeadings,
 				{
-					behavior: "append",
-					properties: {
-						className: ["anchor"],
-					},
-					content: {
-						type: "element",
-						tagName: "span",
-						properties: {
-							className: ["anchor-icon"],
-							"data-pagefind-ignore": true,
-						},
-						children: [
-							{
-								type: "text",
-								value: "#",
-							},
-						],
-					},
+					behavior: "prepend",
+					properties: { className: ["heading-anchor"], ariaHidden: "true", tabIndex: -1 },
+					content: { type: "text", value: "#" },
 				},
 			],
+			rehypeFigures,
 		],
 	},
 	vite: {
-		build: {
-			rollupOptions: {
-				onwarn(warning, warn) {
-					// temporarily suppress this warning
-					if (
-						warning.message.includes("is dynamically imported by") &&
-						warning.message.includes("but also statically imported by")
-					) {
-						return;
-					}
-					warn(warning);
-				},
-			},
-		},
+		build: { assetsInlineLimit: 4096 },
 	},
 });

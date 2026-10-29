@@ -1,0 +1,396 @@
+---
+import { author, socials } from "../../config";
+import Icon from "../Icon.astro";
+
+interface Props {
+	stats: { posts: number; writeups: number; ctfs: number; tags: number };
+}
+const { stats } = Astro.props;
+---
+
+<section class="hero">
+	<div class="grid-field hero-grid" aria-hidden="true"></div>
+	<div class="hero-glow" aria-hidden="true"></div>
+
+	<div class="shell hero-inner">
+		<div class="hero-copy">
+			<a href={author.schoolUrl} target="_blank" rel="noopener" class="status rise">
+				<span class="status-dot" aria-hidden="true"></span>
+				<Icon name="school" size={14} />
+				{author.status}
+			</a>
+
+			<h1 class="hero-name rise" style="animation-delay: 60ms">
+				<span class="hello">Xin chào, mình là</span>
+				<span class="name">{author.name}</span>
+			</h1>
+
+			<p class="hero-role rise" style="animation-delay: 120ms">
+				<span class="role-prefix">&gt;</span>
+				<span data-typer data-words={JSON.stringify(author.focus)}>{author.focus[0]}</span><span class="type-caret" aria-hidden="true"></span>
+			</p>
+
+			<p class="hero-bio rise" style="animation-delay: 180ms">{author.bio}</p>
+
+			<div class="hero-cta rise" style="animation-delay: 240ms">
+				<a href="/blog/" class="btn btn-primary">
+					Đọc blog <Icon name="arrow-right" size={16} />
+				</a>
+				<a href="/about/" class="btn">Về mình</a>
+				<div class="hero-socials">
+					{
+						socials.map((s) => (
+							<a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={s.name} title={s.name}>
+								<Icon name={s.icon as any} size={18} />
+							</a>
+						))
+					}
+				</div>
+			</div>
+		</div>
+
+		<div class="terminal rise" style="animation-delay: 160ms" aria-label="Thông tin cá nhân">
+			<div class="term-bar">
+				<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+				<span class="term-title">nam@uit: ~</span>
+			</div>
+			<div class="term-body">
+				<div class="term-profile">
+					<img src={author.avatar} alt={`Ảnh đại diện của ${author.name}`} width="88" height="88" />
+					<div>
+						<p class="term-name">{author.name}</p>
+						<p class="term-handle">@{author.handle}</p>
+					</div>
+				</div>
+
+				<p class="ln"><span class="pr">$</span> whoami</p>
+				<p class="out">{author.role}</p>
+
+				<p class="ln"><span class="pr">$</span> cat ~/school.txt</p>
+				<p class="out">
+					<span class="k">school</span> {author.school}<br />
+					<span class="k">status</span> <span class="ok">● studying</span><br />
+					<span class="k">city&nbsp;&nbsp;</span> {author.location}
+				</p>
+
+				<p class="ln"><span class="pr">$</span> ls ~/focus</p>
+				<p class="out focus">
+					{author.focus.map((f) => <span>{f.toLowerCase().replace(/\s+/g, "-")}/</span>)}
+				</p>
+
+				<p class="ln"><span class="pr">$</span> <span class="term-caret" aria-hidden="true"></span></p>
+			</div>
+		</div>
+	</div>
+
+	<div class="shell">
+		<dl class="stats rise" style="animation-delay: 320ms">
+			<div><dt>Bài viết</dt><dd>{stats.posts}</dd></div>
+			<div><dt>Write-ups</dt><dd>{stats.writeups}</dd></div>
+			<div><dt>Giải CTF</dt><dd>{stats.ctfs}</dd></div>
+			<div><dt>Chủ đề</dt><dd>{stats.tags}</dd></div>
+		</dl>
+	</div>
+</section>
+
+<style>
+	.hero {
+		position: relative;
+		padding-top: clamp(3rem, 8vw, 6rem);
+		isolation: isolate;
+		/* The glow is wider than the viewport on phones; clip sideways only. */
+		overflow-x: clip;
+	}
+	.hero-grid {
+		position: absolute;
+		inset: 0 0 -10% 0;
+		z-index: -2;
+	}
+	.hero-glow {
+		position: absolute;
+		z-index: -1;
+		top: -180px;
+		left: 50%;
+		width: min(1100px, 120vw);
+		height: 620px;
+		transform: translateX(-50%);
+		background:
+			radial-gradient(closest-side at 30% 45%, hsl(var(--accent-h) 90% 65% / 0.18), transparent),
+			radial-gradient(closest-side at 72% 40%, hsl(190 90% 60% / 0.12), transparent);
+		filter: blur(10px);
+		pointer-events: none;
+	}
+
+	.hero-inner {
+		display: grid;
+		grid-template-columns: 1.15fr 1fr;
+		gap: clamp(2rem, 5vw, 4.5rem);
+		align-items: center;
+	}
+
+	.status {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.35rem 0.8rem 0.35rem 0.65rem;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: var(--fg-dim);
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 99px;
+		transition: border-color 200ms var(--ease-out), color 200ms;
+	}
+	.status:hover { border-color: var(--accent-line); color: var(--fg); }
+	.status-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: hsl(145 70% 55%);
+		box-shadow: 0 0 0 0 hsl(145 70% 55% / 0.6);
+		animation: pulse 2.2s infinite;
+	}
+	@keyframes pulse {
+		70% { box-shadow: 0 0 0 7px hsl(145 70% 55% / 0); }
+		100% { box-shadow: 0 0 0 0 hsl(145 70% 55% / 0); }
+	}
+
+	.hero-name {
+		margin-top: 1.4rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	.hello {
+		font-size: clamp(1rem, 1.6vw, 1.15rem);
+		font-weight: 500;
+		color: var(--fg-dim);
+		letter-spacing: -0.01em;
+	}
+	.name {
+		font-size: clamp(2.7rem, 7vw, 4.6rem);
+		font-weight: 760;
+		letter-spacing: -0.045em;
+		line-height: 1.02;
+		background: linear-gradient(120deg, var(--fg) 30%, hsl(var(--accent-h) 90% 76%) 70%, hsl(190 85% 65%));
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+		padding-bottom: 0.08em;
+	}
+	:global(:root[data-theme="light"]) .name {
+		background: linear-gradient(120deg, var(--fg) 30%, hsl(var(--accent-h) 75% 50%) 70%, hsl(190 85% 38%));
+		-webkit-background-clip: text;
+		background-clip: text;
+	}
+
+	.hero-role {
+		margin: 1.1rem 0 0;
+		font-family: var(--font-mono);
+		font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+		color: var(--fg);
+		min-height: 1.6em;
+	}
+	.role-prefix { color: var(--accent); margin-right: 0.55rem; }
+	.type-caret {
+		display: inline-block;
+		width: 0.55em;
+		height: 1.1em;
+		margin-left: 2px;
+		vertical-align: -0.18em;
+		background: var(--accent);
+		animation: caret 1s steps(1) infinite;
+	}
+	@keyframes caret { 50% { opacity: 0; } }
+
+	.hero-bio {
+		margin: 1.1rem 0 0;
+		max-width: 36rem;
+		font-size: 1.05rem;
+		line-height: 1.7;
+		color: var(--fg-dim);
+	}
+
+	.hero-cta {
+		margin-top: 2rem;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.7rem;
+	}
+	.hero-socials {
+		display: flex;
+		gap: 0.25rem;
+		margin-left: 0.5rem;
+		padding-left: 1rem;
+		border-left: 1px solid var(--line);
+	}
+	.hero-socials a {
+		display: grid;
+		place-items: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 10px;
+		color: var(--fg-faint);
+		transition: all 180ms var(--ease-out);
+	}
+	.hero-socials a:hover { color: var(--accent); background: var(--surface-2); }
+
+	/* Terminal card ----------------------------------------------------- */
+	.terminal {
+		background: color-mix(in srgb, var(--surface) 88%, transparent);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg), 0 0 0 1px var(--accent-soft), 0 40px 100px -40px var(--accent-glow);
+		overflow: hidden;
+		backdrop-filter: blur(8px);
+		transform: perspective(1200px) rotateY(-3deg) rotateX(1.5deg);
+		transition: transform 600ms var(--ease-out);
+	}
+	.terminal:hover { transform: none; }
+	.term-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.7rem 0.95rem;
+		border-bottom: 1px solid var(--line);
+		background: var(--surface-2);
+	}
+	.dots { display: flex; gap: 6px; }
+	.dots i { width: 11px; height: 11px; border-radius: 50%; background: var(--surface-3); }
+	.dots i:nth-child(1) { background: hsl(0 75% 62%); }
+	.dots i:nth-child(2) { background: hsl(40 90% 58%); }
+	.dots i:nth-child(3) { background: hsl(140 55% 50%); }
+	.term-title {
+		flex: 1;
+		text-align: center;
+		margin-right: 45px;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--fg-faint);
+	}
+	.term-body {
+		padding: 1.2rem 1.35rem 1.4rem;
+		font-family: var(--font-mono);
+		font-size: 0.8rem;
+		line-height: 1.7;
+	}
+	.term-profile {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding-bottom: 1rem;
+		margin-bottom: 0.9rem;
+		border-bottom: 1px dashed var(--line);
+	}
+	.term-profile img {
+		width: 64px;
+		height: 64px;
+		border-radius: 14px;
+		object-fit: cover;
+		border: 1px solid var(--line);
+		box-shadow: 0 0 0 3px var(--accent-soft);
+	}
+	.term-name {
+		margin: 0;
+		font-family: var(--font-sans);
+		font-size: 1.1rem;
+		font-weight: 650;
+		color: var(--fg);
+		letter-spacing: -0.01em;
+	}
+	.term-handle { margin: 0; color: var(--accent); font-size: 0.78rem; }
+	.ln { margin: 0.55rem 0 0; color: var(--fg); }
+	.pr { color: hsl(145 65% 58%); margin-right: 0.35rem; }
+	:global(:root[data-theme="light"]) .pr { color: hsl(145 60% 35%); }
+	.out { margin: 0.1rem 0 0; color: var(--fg-dim); }
+	.k { color: var(--accent); display: inline-block; min-width: 4.2em; }
+	.ok { color: hsl(145 65% 58%); }
+	:global(:root[data-theme="light"]) .ok { color: hsl(145 60% 35%); }
+	.focus { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; }
+	.focus span { color: hsl(200 85% 68%); }
+	:global(:root[data-theme="light"]) .focus span { color: hsl(200 80% 38%); }
+	.term-caret {
+		display: inline-block;
+		width: 0.6em;
+		height: 1.1em;
+		vertical-align: -0.2em;
+		background: var(--fg-dim);
+		animation: caret 1s steps(1) infinite;
+	}
+
+	/* Stats ------------------------------------------------------------- */
+	.stats {
+		margin: clamp(3rem, 7vw, 4.5rem) 0 0;
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+		overflow: hidden;
+	}
+	.stats div {
+		padding: 1.2rem 1.4rem;
+		border-right: 1px solid var(--line);
+	}
+	.stats div:last-child { border-right: none; }
+	.stats dt {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--fg-faint);
+	}
+	.stats dd {
+		margin: 0.25rem 0 0;
+		font-size: 1.9rem;
+		font-weight: 700;
+		letter-spacing: -0.03em;
+		color: var(--fg);
+		font-variant-numeric: tabular-nums;
+	}
+
+	@media (max-width: 960px) {
+		.hero-inner { grid-template-columns: 1fr; }
+		.terminal { transform: none; max-width: 560px; }
+	}
+	@media (max-width: 640px) {
+		.stats { grid-template-columns: repeat(2, 1fr); }
+		.stats div:nth-child(2) { border-right: none; }
+		.stats div:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+		.hero-socials { margin-left: 0; padding-left: 0; border-left: none; width: 100%; }
+	}
+</style>
+
+<script>
+	// Types and deletes through the focus list. Respects reduced motion.
+	const el = document.querySelector<HTMLElement>("[data-typer]");
+	if (el && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		const words: string[] = JSON.parse(el.dataset.words || "[]");
+		let w = 0;
+		let i = words[0]?.length ?? 0;
+		let deleting = true;
+		const tick = () => {
+			const word = words[w];
+			if (deleting) {
+				i--;
+				el.textContent = word.slice(0, i);
+				if (i <= 0) {
+					deleting = false;
+					w = (w + 1) % words.length;
+				}
+				setTimeout(tick, 38);
+			} else {
+				i++;
+				el.textContent = words[w].slice(0, i);
+				if (i >= words[w].length) {
+					deleting = true;
+					setTimeout(tick, 2200);
+				} else {
+					setTimeout(tick, 70);
+				}
+			}
+		};
+		setTimeout(tick, 2400);
+	}
+</script>

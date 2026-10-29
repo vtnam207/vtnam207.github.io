@@ -1,0 +1,28 @@
+---
+import FacetPage from "../../components/listing/FacetPage.astro";
+import {
+	facetSlug,
+	getPosts,
+	type Post,
+	tagsOf,
+	withMinutes,
+} from "../../lib/posts";
+
+export async function getStaticPaths() {
+	const posts = await getPosts();
+	return tagsOf(posts).map((t) => ({
+		params: { tag: facetSlug(t.name) },
+		props: {
+			name: t.name,
+			posts: posts.filter((p) => p.data.tags.includes(t.name)),
+		},
+	}));
+}
+
+const { name, posts } = Astro.props as { name: string; posts: Post[] };
+const minutes = new Map(
+	(await withMinutes(posts)).map((x) => [x.post.id, x.minutes]),
+);
+---
+
+<FacetPage kind="tag" name={name} posts={posts} minutes={minutes} />

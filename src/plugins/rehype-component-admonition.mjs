@@ -1,33 +1,43 @@
 /// <reference types="mdast" />
 import { h } from "hastscript";
 
+const COLORS = {
+	note: "hsl(215 90% 66%)",
+	tip: "hsl(150 65% 52%)",
+	important: "hsl(265 89% 72%)",
+	warning: "hsl(38 95% 58%)",
+	caution: "hsl(0 85% 64%)",
+};
+
 /**
- * Creates an admonition component.
+ * Renders `:::note` / `> [!TIP]` style blocks.
  *
- * @param {Object} properties - The properties of the component.
- * @param {string} [properties.title] - An optional title.
- * @param {('tip'|'note'|'important'|'caution'|'warning')} type - The admonition type.
- * @param {import('mdast').RootContent[]} children - The children elements of the component.
- * @returns {import('mdast').Parent} The created admonition component.
+ * @param {Record<string, unknown>} properties
+ * @param {import('hast').ElementContent[]} children
+ * @param {keyof typeof COLORS} type
  */
 export function AdmonitionComponent(properties, children, type) {
-	if (!Array.isArray(children) || children.length === 0)
-		return h(
-			"div",
-			{ class: "hidden" },
-			'Invalid admonition directive. (Admonition directives must be of block type ":::note{name="name"} <content> :::")',
-		);
-
-	let label = null;
-	if (properties?.["has-directive-label"]) {
-		label = children[0]; // The first child is the label
-		// biome-ignore lint/style/noParameterAssign: <check later>
-		children = children.slice(1);
-		label.tagName = "div"; // Change the tag <p> to <div>
+	if (!Array.isArray(children) || children.length === 0) {
+		return h("div", { class: "hidden" }, "Invalid admonition directive.");
 	}
 
-	return h("blockquote", { class: `admonition bdm-${type}` }, [
-		h("span", { class: "bdm-title" }, label ? label : type.toUpperCase()),
-		...children,
-	]);
+	let label = null;
+	let body = children;
+	if (properties?.["has-directive-label"]) {
+		label = children[0];
+		body = children.slice(1);
+		label.tagName = "div";
+	}
+
+	return h(
+		"aside",
+		{
+			class: `admonition admonition-${type}`,
+			style: `--admonition-color: ${COLORS[type]}`,
+		},
+		[
+			h("div", { class: "admonition-title" }, label ? label.children : type),
+			...body,
+		],
+	);
 }

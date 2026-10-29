@@ -1,0 +1,158 @@
+---
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "katex/dist/katex.min.css";
+import "../styles/global.css";
+
+import Footer from "../components/Footer.astro";
+import Lightbox from "../components/Lightbox.astro";
+import Nav from "../components/Nav.astro";
+import Search from "../components/Search.astro";
+import { author, site } from "../config";
+
+interface Props {
+	title?: string;
+	description?: string;
+	image?: string;
+	type?: "website" | "article";
+	/** Category hue for the page accent; posts pass their category's. */
+	accentHue?: number;
+	publishedTime?: Date;
+	tags?: string[];
+	noindex?: boolean;
+}
+
+const {
+	title,
+	description = site.description,
+	image = "/assets/covers/site-og.png",
+	type = "website",
+	accentHue,
+	publishedTime,
+	tags = [],
+	noindex = false,
+} = Astro.props;
+
+const fullTitle = title
+	? `${title} · ${site.title}`
+	: `${site.title} — ${site.tagline}`;
+const canonical = new URL(Astro.url.pathname, site.url).href;
+const ogImage = new URL(image, site.url).href;
+const accentStyle =
+	accentHue !== undefined ? `--accent-h: ${accentHue};` : undefined;
+---
+
+<!doctype html>
+<html lang={site.lang} data-theme="dark" style={accentStyle}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{fullTitle}</title>
+		<meta name="description" content={description} />
+		<meta name="author" content={author.name} />
+		<link rel="canonical" href={canonical} />
+		{noindex && <meta name="robots" content="noindex" />}
+
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="alternate" type="application/rss+xml" title={site.title} href="/rss.xml" />
+		<link rel="sitemap" href="/sitemap-index.xml" />
+		<meta name="theme-color" content="#0b0c12" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#f8f8fb" media="(prefers-color-scheme: light)" />
+
+		<meta property="og:type" content={type} />
+		<meta property="og:site_name" content={site.title} />
+		<meta property="og:locale" content={site.locale} />
+		<meta property="og:title" content={title ?? site.title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		{publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+		{type === "article" && <meta property="article:author" content={author.name} />}
+		{tags.map((t) => <meta property="article:tag" content={t} />)}
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title ?? site.title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
+
+		<script is:inline>
+			// Runs before first paint so the page never flashes the wrong theme.
+			(() => {
+				let theme = "dark";
+				try {
+					const saved = localStorage.getItem("theme");
+					if (saved === "light" || saved === "dark") theme = saved;
+					else if (matchMedia("(prefers-color-scheme: light)").matches) theme = "light";
+				} catch {}
+				document.documentElement.dataset.theme = theme;
+			})();
+		</script>
+		<slot name="head" />
+	</head>
+	<body>
+		<a href="#main" class="skip-link">Bỏ qua tới nội dung</a>
+		<Nav />
+		<main id="main">
+			<slot />
+		</main>
+		<Footer />
+		<Search />
+		<Lightbox />
+
+		<button type="button" class="to-top" data-to-top aria-label="Lên đầu trang" hidden>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+		</button>
+
+		<script>
+			const btn = document.querySelector<HTMLButtonElement>("[data-to-top]");
+			if (btn) {
+				const toggle = () => (btn.hidden = window.scrollY < 700);
+				toggle();
+				window.addEventListener("scroll", toggle, { passive: true });
+				btn.addEventListener("click", () => window.scrollTo({ top: 0 }));
+			}
+		</script>
+	</body>
+</html>
+
+<style is:global>
+	.skip-link {
+		position: absolute;
+		left: 1rem;
+		top: -100px;
+		z-index: 200;
+		padding: 0.6rem 1rem;
+		background: var(--accent);
+		color: var(--bg);
+		border-radius: 8px;
+		font-weight: 600;
+	}
+	.skip-link:focus { top: 0.75rem; }
+
+	.to-top {
+		position: fixed;
+		right: 1.25rem;
+		bottom: 1.25rem;
+		z-index: 40;
+		width: 44px;
+		height: 44px;
+		display: grid;
+		place-items: center;
+		color: var(--fg);
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		box-shadow: var(--shadow);
+		cursor: pointer;
+		transition: all 200ms var(--ease-out);
+	}
+	.to-top[hidden] { display: none; }
+	.to-top:hover {
+		color: var(--accent);
+		border-color: var(--accent-line);
+		transform: translateY(-2px);
+	}
+</style>

@@ -1,0 +1,97 @@
+---
+import Icon from "../components/Icon.astro";
+import PostCard from "../components/PostCard.astro";
+import Base from "../layouts/Base.astro";
+import { formatDate } from "../lib/format";
+import { facetSlug, getPosts, groupByCtf, withMinutes } from "../lib/posts";
+
+const posts = await getPosts();
+const groups = groupByCtf(posts);
+const minutes = new Map(
+	(await withMinutes(posts)).map((x) => [x.post.id, x.minutes]),
+);
+const total = groups.reduce((n, g) => n + g.items.length, 0);
+---
+
+<Base title="Write-ups" description="Write-up các giải CTF mình đã tham gia, nhóm theo từng giải.">
+	<header class="shell page-header">
+		<p class="page-eyebrow"><Icon name="flag" size={14} /> cat flag.txt</p>
+		<h1 class="page-title">CTF Write-ups</h1>
+		<p class="page-lede">
+			{total} write-up từ {groups.length} giải. Mỗi bài đi từ lúc mở file đề tới lúc lấy được flag — kể cả những
+			hướng đi sai.
+		</p>
+	</header>
+
+	<div class="shell">
+		{
+			groups.length > 1 && (
+				<nav class="jump" aria-label="Các giải">
+					{groups.map((g) => (
+						<a href={`#${facetSlug(g.key)}`} class="chip">
+							<Icon name="flag" size={12} />
+							{g.key}
+						</a>
+					))}
+				</nav>
+			)
+		}
+
+		{
+			groups.map((g) => (
+				<section class="event" id={facetSlug(g.key)}>
+					<header class="event-head">
+						<span class="event-icon">
+							<Icon name="flag" size={20} />
+						</span>
+						<div>
+							<h2>{g.key}</h2>
+							<p>
+								{formatDate(g.items[0].data.published)} · {g.items.length} bài ·{" "}
+								{[...new Set(g.items.map((p) => p.data.category))].join(", ")}
+							</p>
+						</div>
+					</header>
+					<div class="event-grid">
+						{g.items.map((p, i) => (
+							<PostCard post={p} index={i} minutes={minutes.get(p.id)} />
+						))}
+					</div>
+				</section>
+			))
+		}
+
+		{groups.length === 0 && <p class="empty">Chưa có write-up nào.</p>}
+	</div>
+</Base>
+
+<style>
+	.jump { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2.5rem; }
+	.event { margin-bottom: 3.5rem; scroll-margin-top: calc(var(--nav-height) + 1.5rem); }
+	.event-head {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding-bottom: 1.1rem;
+		margin-bottom: 1.4rem;
+		border-bottom: 1px solid var(--line);
+	}
+	.event-icon {
+		display: grid;
+		place-items: center;
+		width: 46px;
+		height: 46px;
+		border-radius: 12px;
+		color: hsl(25 95% 62%);
+		background: hsl(25 95% 60% / 0.12);
+		border: 1px solid hsl(25 95% 60% / 0.25);
+	}
+	.event-head h2 { font-size: 1.4rem; color: var(--fg); }
+	.event-head p { margin: 0.2rem 0 0; font-family: var(--font-mono); font-size: 0.75rem; color: var(--fg-faint); }
+	.event-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.25rem;
+	}
+	.empty { color: var(--fg-faint); }
+</style>

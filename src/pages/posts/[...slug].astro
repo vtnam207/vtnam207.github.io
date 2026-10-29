@@ -1,141 +1,593 @@
 ---
-import path from "node:path";
-import License from "@components/misc/License.astro";
-import Markdown from "@components/misc/Markdown.astro";
-import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
-import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPosts } from "@utils/content-utils";
-import { getDir, getPostUrlBySlug } from "@utils/url-utils";
-import { Icon } from "astro-icon/components";
-import { licenseConfig } from "src/config";
-import ImageWrapper from "../../components/misc/ImageWrapper.astro";
-import PostMetadata from "../../components/PostMeta.astro";
-import { profileConfig, siteConfig } from "../../config";
-import { formatDateToYYYYMMDD } from "../../utils/date-utils";
+import Icon from "../../components/Icon.astro";
+import PostCard from "../../components/PostCard.astro";
+import Toc from "../../components/Toc.astro";
+import { author, license, site, themeForCategory } from "../../config";
+import Base from "../../layouts/Base.astro";
+import { formatDate, isoDate } from "../../lib/format";
+import {
+	coverFor,
+	facetSlug,
+	getPosts,
+	neighboursOf,
+	ogFor,
+	type Post,
+	relatedTo,
+	urlOf,
+} from "../../lib/posts";
 
 export async function getStaticPaths() {
-	const blogEntries = await getSortedPosts();
-	return blogEntries.map((entry) => ({
-		params: { slug: entry.slug },
-		props: { entry },
+	const posts = await getPosts();
+	return posts.map((post) => ({
+		params: { slug: post.slug },
+		props: { post, posts },
 	}));
 }
 
-const { entry } = Astro.props;
-const { Content, headings } = await entry.render();
+interface Props {
+	post: Post;
+	posts: Post[];
+}
 
-const { remarkPluginFrontmatter } = await entry.render();
+const { post, posts } = Astro.props;
+const { Content, headings, remarkPluginFrontmatter } = await post.render();
+const {
+	title,
+	description,
+	category,
+	tags,
+	ctf,
+	published,
+	updated,
+	difficulty,
+	points,
+	lang,
+} = post.data;
+
+const hue = themeForCategory(category).hue;
+const cover = coverFor(post);
+const minutes = Number(remarkPluginFrontmatter.minutes) || 1;
+const words = Number(remarkPluginFrontmatter.words) || 0;
+const { newer, older } = neighboursOf(posts, post);
+const related = relatedTo(posts, post, 3);
+const canonical = new URL(urlOf(post), site.url).href;
+const share = {
+	facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonical)}`,
+	x: `https://x.com/intent/post?url=${encodeURIComponent(canonical)}&text=${encodeURIComponent(title)}`,
+};
 
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "BlogPosting",
-	headline: entry.data.title,
-	description: entry.data.description || entry.data.title,
-	keywords: entry.data.tags,
+	headline: title,
+	description,
+	image: new URL(ogFor(post), site.url).href,
+	datePublished: published.toISOString(),
+	dateModified: (updated ?? published).toISOString(),
+	inLanguage: lang || site.lang,
 	author: {
 		"@type": "Person",
-		name: profileConfig.name,
-		url: Astro.site,
+		name: author.name,
+		url: new URL("/about/", site.url).href,
 	},
-	datePublished: formatDateToYYYYMMDD(entry.data.published),
-	inLanguage: entry.data.lang
-		? entry.data.lang.replace("_", "-")
-		: siteConfig.lang.replace("_", "-"),
-	// TODO include cover image here
+	keywords: tags.join(", "),
+	mainEntityOfPage: canonical,
 };
 ---
-<MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} headings={headings}>
-    <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-    <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
-        <div id="post-container" class:list={["card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full ",
-            {}
-        ]}>
-            <!-- word count and reading time -->
-            <div class="flex flex-row text-black/30 dark:text-white/30 gap-5 mb-3 transition onload-animation">
-                <div class="flex flex-row items-center">
-                    <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
-                        <Icon name="material-symbols:notes-rounded"></Icon>
-                    </div>
-                    <div class="text-sm">{remarkPluginFrontmatter.words} {" " + i18n(I18nKey.wordsCount)}</div>
-                </div>
-                <div class="flex flex-row items-center">
-                    <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
-                        <Icon name="material-symbols:schedule-outline-rounded"></Icon>
-                    </div>
-                    <div class="text-sm">
-                        {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
-                    </div>
-                </div>
-            </div>
 
-            <!-- title -->
-            <div class="relative onload-animation">
-                <div
-                    data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title"
-                    class="transition w-full block font-bold mb-3
-                    text-3xl md:text-[2.25rem]/[2.75rem]
-                    text-black/90 dark:text-white/90
-                    md:before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
-                    before:absolute before:top-[0.75rem] before:left-[-1.125rem]
-                ">
-                    {entry.data.title}
-                </div>
-            </div>
+<Base
+	title={title}
+	description={description || site.description}
+	image={ogFor(post)}
+	type="article"
+	accentHue={hue}
+	publishedTime={published}
+	tags={tags}
+>
+	<script is:inline type="application/ld+json" slot="head" set:html={JSON.stringify(jsonLd)} />
 
-            {(entry.data.ctf || entry.data.difficulty || entry.data.points !== undefined) && <div class="challenge-meta">
-                {entry.data.ctf && <span>{entry.data.ctf}</span>}
-                {entry.data.difficulty && <span class="pill">{entry.data.difficulty}</span>}
-                {entry.data.points !== undefined && <span class="points">{entry.data.points}<small> pts</small></span>}
-            </div>}
-            <!-- metadata -->
-            <div class="onload-animation">
-                <PostMetadata
-                        class="mb-5"
-                        published={entry.data.published}
-                        updated={entry.data.updated}
-                        tags={entry.data.tags}
-                        category={entry.data.category}
-                ></PostMetadata>
-                {!entry.data.image && <div class="border-[var(--line-divider)] border-dashed border-b-[1px] mb-5"></div>}
-            </div>
+	<div class="progress" aria-hidden="true"><span data-progress></span></div>
 
-            <!-- always show cover as long as it has one -->
+	<header class="post-hero">
+		<div class="hero-bg" aria-hidden="true">
+			<img src={cover} alt="" />
+		</div>
+		<div class="shell hero-content">
+			<nav class="crumbs rise" aria-label="Breadcrumb">
+				<a href="/">Home</a>
+				<span>/</span>
+				<a href="/blog/">Blog</a>
+				<span>/</span>
+				<a href={`/categories/${facetSlug(category ?? "")}/`}>{category}</a>
+			</nav>
 
-            {entry.data.image &&
-                <ImageWrapper id="post-cover" src={entry.data.image} basePath={path.join("content/posts/", getDir(entry.id))} class="mb-8 rounded-xl banner-container onload-animation"/>
-            }
+			<div class="badges rise" style="animation-delay: 40ms">
+				<a href={`/categories/${facetSlug(category ?? "")}/`} class="chip chip-accent">
+					<Icon name="folder" size={12} />{category}
+				</a>
+				{
+					ctf && (
+						<a href={`/writeups/#${facetSlug(ctf)}`} class="chip chip-ctf">
+							<Icon name="flag" size={12} />
+							{ctf}
+						</a>
+					)
+				}
+				{difficulty && <span class="chip">{difficulty}</span>}
+				{points !== undefined && <span class="chip">{points} pts</span>}
+			</div>
 
+			<h1 class="post-title rise" style="animation-delay: 80ms">{title}</h1>
+			{description && <p class="post-desc rise" style="animation-delay: 120ms">{description}</p>}
 
-            <Markdown class="mb-6 markdown-content onload-animation">
-                <Content />
-            </Markdown>
+			<div class="byline rise" style="animation-delay: 160ms">
+				<a href="/about/" class="author">
+					<img src={author.avatar} alt="" width="36" height="36" />
+					<span>
+						<span class="author-name">{author.name}</span>
+						<span class="author-school">{author.schoolShort}</span>
+					</span>
+				</a>
+				<span class="sep" aria-hidden="true"></span>
+				<span class="meta">
+					<Icon name="calendar" size={14} />
+					<time datetime={isoDate(published)}>{formatDate(published)}</time>
+				</span>
+				<span class="meta">
+					<Icon name="clock" size={14} />
+					{minutes} phút đọc
+				</span>
+				{
+					words > 0 && (
+						<span class="meta">
+							<Icon name="book" size={14} />
+							{words.toLocaleString("vi-VN")} từ
+						</span>
+					)
+				}
+				{
+					updated && (
+						<span class="meta">
+							Cập nhật <time datetime={isoDate(updated)}>{formatDate(updated)}</time>
+						</span>
+					)
+				}
+			</div>
+		</div>
+	</header>
 
-            {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
+	<div class="shell">
+		<figure class="cover-frame rise" style="animation-delay: 200ms">
+			<img src={cover} alt={post.data.coverAlt || `Ảnh bìa: ${title}`} width="1280" height="720" fetchpriority="high" />
+		</figure>
+	</div>
 
-        </div>
-    </div>
+	<div class="shell layout">
+		<article class="prose" data-article lang={lang || undefined}>
+			<Content />
+		</article>
 
-    <div class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full">
-        <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug) : "#"}
-           class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.nextSlug}]}>
-            {entry.data.nextSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
-                <Icon name="material-symbols:chevron-left-rounded" class="text-[2rem] text-[var(--primary)]" />
-                <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
-                    {entry.data.nextTitle}
-                </div>
-            </div>}
-        </a>
+		<aside class="rail">
+			<div class="rail-sticky">
+				<Toc headings={headings} />
+				<div class="rail-actions">
+					<button type="button" class="rail-btn" data-copy-link={canonical}>
+						<Icon name="link" size={14} />
+						<span data-copy-label>Copy link</span>
+					</button>
+					<button type="button" class="rail-btn" data-scroll-top>
+						<Icon name="arrow-up" size={14} />
+						Lên đầu
+					</button>
+				</div>
+			</div>
+		</aside>
+	</div>
 
-        <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
-           class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
-            {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4">
-                <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
-                    {entry.data.prevTitle}
-                </div>
-                <Icon name="material-symbols:chevron-right-rounded" class="text-[2rem] text-[var(--primary)]" />
-            </div>}
-        </a>
-    </div>
+	<div class="shell after">
+		<div class="after-inner">
+			{
+				tags.length > 0 && (
+					<div class="tag-row">
+						<Icon name="tag" size={15} />
+						{tags.map((t) => (
+							<a href={`/tags/${facetSlug(t)}/`} class="chip">
+								#{t}
+							</a>
+						))}
+					</div>
+				)
+			}
 
-</MainGridLayout>
+			<div class="share card">
+				<div>
+					<p class="mono-label">Chia sẻ bài viết</p>
+					<p class="share-url">{canonical.replace(/^https?:\/\//, "")}</p>
+				</div>
+				<div class="share-btns">
+					<button type="button" class="btn" data-copy-link={canonical}>
+						<Icon name="link" size={15} /> <span data-copy-label>Copy</span>
+					</button>
+					<a class="btn" href={share.facebook} target="_blank" rel="noopener noreferrer" aria-label="Chia sẻ lên Facebook">
+						<Icon name="facebook" size={15} />
+					</a>
+					<a class="btn" href={share.x} target="_blank" rel="noopener noreferrer" aria-label="Chia sẻ lên X">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z" /></svg>
+					</a>
+				</div>
+			</div>
+
+			<div class="author-card card">
+				<img src={author.avatar} alt={author.name} width="72" height="72" />
+				<div>
+					<p class="mono-label">Tác giả</p>
+					<p class="ac-name">{author.name}</p>
+					<p class="ac-school">
+						<Icon name="school" size={14} />
+						{author.school}
+					</p>
+					<p class="ac-bio">{author.bio}</p>
+				</div>
+			</div>
+
+			{
+				license.enable && (
+					<p class="license">
+						Bài viết thuộc về <strong>{author.name}</strong>, phát hành theo giấy phép{" "}
+						<a href={license.url} target="_blank" rel="noopener">
+							{license.name}
+						</a>
+						. Vui lòng ghi nguồn khi chia sẻ lại.
+					</p>
+				)
+			}
+
+			{
+				(newer || older) && (
+					<nav class="pager" aria-label="Bài viết khác">
+						{older ? (
+							<a href={urlOf(older)} class="pager-link prev">
+								<span class="mono-label">
+									<Icon name="arrow-left" size={12} /> Bài trước
+								</span>
+								<span class="pager-title">{older.data.title}</span>
+							</a>
+						) : (
+							<span />
+						)}
+						{newer && (
+							<a href={urlOf(newer)} class="pager-link next">
+								<span class="mono-label">
+									Bài sau <Icon name="arrow-right" size={12} />
+								</span>
+								<span class="pager-title">{newer.data.title}</span>
+							</a>
+						)}
+					</nav>
+				)
+			}
+		</div>
+
+		{
+			related.length > 0 && (
+				<section class="related">
+					<div class="section-head">
+						<h2 class="section-title">Đọc tiếp</h2>
+					</div>
+					<div class="related-grid">
+						{related.map((p, i) => (
+							<PostCard post={p} index={i} />
+						))}
+					</div>
+				</section>
+			)
+		}
+	</div>
+</Base>
+
+<style>
+	.progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 60;
+		height: 2px;
+		pointer-events: none;
+	}
+	.progress span {
+		display: block;
+		height: 100%;
+		width: 100%;
+		transform-origin: 0 50%;
+		transform: scaleX(0);
+		background: linear-gradient(90deg, var(--accent), hsl(calc(var(--accent-h) + 60) 85% 65%));
+		box-shadow: 0 0 12px var(--accent-glow);
+	}
+
+	/* Hero: the cover, blurred and darkened, bleeds behind the title. */
+	.post-hero {
+		position: relative;
+		isolation: isolate;
+		padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(2rem, 5vw, 3rem);
+		overflow: hidden;
+	}
+	.hero-bg {
+		position: absolute;
+		inset: -40px;
+		z-index: -1;
+	}
+	.hero-bg img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		filter: blur(48px) saturate(1.4);
+		opacity: 0.4;
+		transform: scale(1.1);
+	}
+	.hero-bg::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 35%, transparent), var(--bg) 92%);
+	}
+	:global(:root[data-theme="light"]) .hero-bg img { opacity: 0.22; }
+
+	.hero-content { max-width: calc(var(--prose-width) + 18rem); }
+
+	.crumbs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--fg-faint);
+	}
+	.crumbs a:hover { color: var(--accent); }
+
+	.badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 1.4rem;
+	}
+	.chip-ctf {
+		color: hsl(25 95% 66%);
+		background: hsl(25 95% 60% / 0.1);
+		border-color: hsl(25 95% 60% / 0.28);
+	}
+	:global(:root[data-theme="light"]) .chip-ctf { color: hsl(25 85% 40%); }
+
+	.post-title {
+		margin-top: 1.1rem;
+		font-size: clamp(2.1rem, 5.4vw, 3.5rem);
+		font-weight: 740;
+		letter-spacing: -0.04em;
+		line-height: 1.06;
+		color: var(--fg);
+		max-width: 22ch;
+	}
+	.post-desc {
+		margin: 1.1rem 0 0;
+		max-width: 44rem;
+		font-size: clamp(1.02rem, 1.6vw, 1.15rem);
+		line-height: 1.6;
+		color: var(--fg-dim);
+	}
+
+	.byline {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem 1.2rem;
+		margin-top: 1.9rem;
+	}
+	.author {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.7rem;
+	}
+	.author img {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 1px solid var(--line);
+	}
+	.author > span { display: flex; flex-direction: column; line-height: 1.25; }
+	.author-name { font-weight: 600; font-size: 0.9rem; color: var(--fg); }
+	.author-school { font-family: var(--font-mono); font-size: 0.7rem; color: var(--fg-faint); }
+	.author:hover .author-name { color: var(--accent); }
+	.sep { width: 1px; height: 26px; background: var(--line); }
+	.meta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-family: var(--font-mono);
+		font-size: 0.78rem;
+		color: var(--fg-dim);
+	}
+	@media (max-width: 640px) { .sep { display: none; } .byline .author { width: 100%; } }
+
+	.cover-frame {
+		margin: 0 auto;
+		max-width: calc(var(--prose-width) + 18rem);
+		border-radius: var(--radius-xl);
+		overflow: hidden;
+		border: 1px solid var(--line);
+		box-shadow: var(--shadow-lg), 0 30px 80px -40px var(--accent-glow);
+	}
+	/* Wide crop from the top: shows the art, not the title baked into it. */
+	.cover-frame img { width: 100%; height: auto; aspect-ratio: 16 / 5; object-fit: cover; object-position: 50% 12%; }
+
+	/* Body + rail ------------------------------------------------------- */
+	.layout {
+		display: grid;
+		grid-template-columns: minmax(0, var(--prose-width)) 15rem;
+		justify-content: center;
+		gap: 3.5rem;
+		margin-top: clamp(2.5rem, 6vw, 4rem);
+	}
+	.rail-sticky {
+		position: sticky;
+		top: calc(var(--nav-height) + 2rem);
+		max-height: calc(100dvh - var(--nav-height) - 4rem);
+		overflow-y: auto;
+		padding-right: 0.25rem;
+	}
+	.rail-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		margin-top: 1.5rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--line);
+	}
+	.rail-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.35rem 0;
+		font: inherit;
+		font-size: 0.82rem;
+		color: var(--fg-faint);
+		background: none;
+		border: 0;
+		cursor: pointer;
+		text-align: left;
+	}
+	.rail-btn:hover { color: var(--accent); }
+	@media (max-width: 1100px) {
+		.layout { grid-template-columns: minmax(0, var(--prose-width)); }
+		.rail { display: none; }
+	}
+
+	/* After the article ------------------------------------------------- */
+	.after { margin-top: 4rem; }
+	.after-inner {
+		max-width: var(--prose-width);
+		margin-inline: auto;
+		display: grid;
+		gap: 1.25rem;
+	}
+	@media (min-width: 1101px) {
+		.after-inner { max-width: calc(var(--prose-width) + 18.5rem); padding-right: 18.5rem; }
+	}
+	.tag-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--fg-faint);
+		padding-bottom: 1.25rem;
+		border-bottom: 1px solid var(--line);
+	}
+	.share {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+		padding: 1.1rem 1.25rem;
+	}
+	.share-url { margin: 0.25rem 0 0; font-family: var(--font-mono); font-size: 0.8rem; color: var(--fg-dim); word-break: break-all; }
+	.share-btns { display: flex; gap: 0.5rem; }
+	.share-btns .btn { height: 38px; padding: 0 0.85rem; }
+
+	.author-card {
+		display: flex;
+		gap: 1.25rem;
+		padding: 1.4rem;
+		align-items: flex-start;
+	}
+	.author-card img {
+		width: 72px;
+		height: 72px;
+		border-radius: 16px;
+		object-fit: cover;
+		border: 1px solid var(--line);
+		flex-shrink: 0;
+	}
+	.ac-name { margin: 0.2rem 0 0; font-size: 1.1rem; font-weight: 650; color: var(--fg); }
+	.ac-school {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin: 0.15rem 0 0;
+		font-size: 0.82rem;
+		color: var(--accent);
+	}
+	.ac-bio { margin: 0.6rem 0 0; font-size: 0.9rem; color: var(--fg-dim); }
+
+	.license {
+		margin: 0;
+		font-size: 0.8rem;
+		color: var(--fg-faint);
+	}
+	.license strong { color: var(--fg-dim); font-weight: 600; }
+	.license a { color: var(--accent); }
+
+	.pager {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-top: 0.75rem;
+	}
+	.pager-link {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		padding: 1.1rem 1.25rem;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
+	}
+	.pager-link:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+	.pager-link .mono-label { display: inline-flex; align-items: center; gap: 0.35rem; }
+	.pager-link.next { text-align: right; align-items: flex-end; grid-column: 2; }
+	.pager-title { font-weight: 600; color: var(--fg); line-height: 1.35; }
+	@media (max-width: 640px) {
+		.pager { grid-template-columns: 1fr; }
+		.pager-link.next { grid-column: 1; }
+	}
+
+	.related { margin-top: 5rem; }
+	.related-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.25rem;
+	}
+</style>
+
+<script>
+	const bar = document.querySelector<HTMLElement>("[data-progress]");
+	const article = document.querySelector<HTMLElement>("[data-article]");
+	if (bar && article) {
+		let raf = 0;
+		const update = () => {
+			raf = 0;
+			const r = article.getBoundingClientRect();
+			const total = r.height - window.innerHeight * 0.6;
+			const ratio = Math.min(1, Math.max(0, -r.top / Math.max(total, 1)));
+			bar.style.transform = `scaleX(${ratio})`;
+		};
+		update();
+		window.addEventListener("scroll", () => (raf ||= requestAnimationFrame(update)), { passive: true });
+	}
+
+	for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-copy-link]")) {
+		btn.addEventListener("click", async () => {
+			const label = btn.querySelector("[data-copy-label]");
+			const original = label?.textContent;
+			try {
+				await navigator.clipboard.writeText(btn.dataset.copyLink!);
+				if (label) label.textContent = "Đã copy!";
+			} catch {
+				if (label) label.textContent = "Không copy được";
+			}
+			setTimeout(() => label && (label.textContent = original ?? ""), 1600);
+		});
+	}
+	document.querySelector("[data-scroll-top]")?.addEventListener("click", () => window.scrollTo({ top: 0 }));
+</script>

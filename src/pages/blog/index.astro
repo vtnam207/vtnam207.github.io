@@ -1,0 +1,228 @@
+---
+import Icon from "../../components/Icon.astro";
+import PostCard from "../../components/PostCard.astro";
+import { themeForCategory } from "../../config";
+import Base from "../../layouts/Base.astro";
+import { categoriesOf, getPosts, tagsOf, withMinutes } from "../../lib/posts";
+
+const posts = await getPosts();
+const items = await withMinutes(posts);
+const categories = categoriesOf(posts);
+const tags = tagsOf(posts);
+---
+
+<Base title="Blog" description="Tất cả bài viết: write-up CTF, reverse engineering, crypto và ghi chú kỹ thuật.">
+	<header class="shell page-header">
+		<p class="page-eyebrow"><Icon name="terminal" size={14} /> ls ./posts</p>
+		<h1 class="page-title">Blog</h1>
+		<p class="page-lede">
+			Write-up CTF, ghi chú reverse engineering và crypto. Lọc theo danh mục hoặc tag, hoặc gõ để tìm.
+		</p>
+	</header>
+
+	<section class="shell" data-filter-root>
+		<div class="toolbar card">
+			<label class="filter-search">
+				<Icon name="search" size={16} />
+				<input type="search" placeholder="Lọc theo tiêu đề, mô tả, tag…" data-filter-q aria-label="Lọc bài viết" />
+			</label>
+			<div class="filter-group" role="group" aria-label="Danh mục">
+				<button type="button" class="chip" aria-pressed="true" data-filter-cat="">Tất cả <span class="chip-count">{posts.length}</span></button>
+				{
+					categories.map((c) => (
+						<button type="button" class="chip" aria-pressed="false" data-filter-cat={c.name} style={`--chip-h: ${themeForCategory(c.name).hue}`}>
+							{c.name} <span class="chip-count">{c.count}</span>
+						</button>
+					))
+				}
+			</div>
+			<div class="filter-group tags" role="group" aria-label="Tags">
+				{
+					tags.map((t) => (
+						<button type="button" class="chip" aria-pressed="false" data-filter-tag={t.name}>
+							#{t.name}
+						</button>
+					))
+				}
+			</div>
+		</div>
+
+		<p class="result-line" aria-live="polite">
+			<span data-filter-count>{posts.length}</span> bài viết
+			<button type="button" class="reset" data-filter-reset hidden>Xoá bộ lọc</button>
+		</p>
+
+		<div class="grid">
+			{
+				items.map(({ post, minutes }, i) => (
+					<div
+						class="cell"
+						data-post
+						data-category={post.data.category}
+						data-tags={JSON.stringify(post.data.tags)}
+						data-text={`${post.data.title} ${post.data.description} ${post.data.ctf} ${post.data.tags.join(" ")}`}
+					>
+						<PostCard post={post} index={i} eager={i < 3} minutes={minutes} />
+					</div>
+				))
+			}
+		</div>
+
+		<div class="empty card" data-filter-empty hidden>
+			<p>Không có bài nào khớp bộ lọc.</p>
+			<button type="button" class="btn" data-filter-reset>Xoá bộ lọc</button>
+		</div>
+	</section>
+</Base>
+
+<style>
+	.toolbar {
+		display: grid;
+		gap: 0.9rem;
+		padding: 1rem;
+		position: sticky;
+		top: calc(var(--nav-height) + 0.75rem);
+		z-index: 10;
+		background: color-mix(in srgb, var(--surface) 90%, transparent);
+		backdrop-filter: blur(12px);
+	}
+	.filter-search {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		height: 42px;
+		padding: 0 0.9rem;
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		color: var(--fg-faint);
+		transition: border-color 160ms;
+	}
+	.filter-search:focus-within { border-color: var(--accent-line); }
+	.filter-search input {
+		flex: 1;
+		height: 100%;
+		font: inherit;
+		font-size: 0.92rem;
+		color: var(--fg);
+		background: none;
+		border: 0;
+		outline: 0;
+	}
+	.filter-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+	.filter-group button { cursor: pointer; }
+	.filter-group button[aria-pressed="true"] {
+		color: hsl(var(--chip-h) 85% 74%);
+		background: hsl(var(--chip-h) 80% 65% / 0.14);
+		border-color: hsl(var(--chip-h) 80% 65% / 0.4);
+	}
+	:global(:root[data-theme="light"]) .filter-group button[aria-pressed="true"] { color: hsl(var(--chip-h) 70% 38%); }
+	.tags { padding-top: 0.85rem; border-top: 1px dashed var(--line); }
+	@media (max-width: 640px) {
+		.toolbar { position: static; }
+	}
+
+	.result-line {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin: 1.5rem 0 1.1rem;
+		font-family: var(--font-mono);
+		font-size: 0.78rem;
+		color: var(--fg-faint);
+	}
+	.reset {
+		font: inherit;
+		color: var(--accent);
+		background: none;
+		border: 0;
+		cursor: pointer;
+		padding: 0;
+	}
+	.reset[hidden] { display: none; }
+
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.25rem;
+	}
+	.cell { display: flex; }
+	.cell > :global(*) { flex: 1; }
+	.cell[hidden] { display: none; }
+
+	.empty {
+		padding: 3rem 1rem;
+		text-align: center;
+		color: var(--fg-dim);
+	}
+	.empty[hidden] { display: none; }
+</style>
+
+<script>
+	const fold = (s: string) =>
+		s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+
+	const root = document.querySelector<HTMLElement>("[data-filter-root]");
+	if (root) {
+		const q = root.querySelector<HTMLInputElement>("[data-filter-q]")!;
+		const cells = [...root.querySelectorAll<HTMLElement>("[data-post]")];
+		const catBtns = [...root.querySelectorAll<HTMLButtonElement>("[data-filter-cat]")];
+		const tagBtns = [...root.querySelectorAll<HTMLButtonElement>("[data-filter-tag]")];
+		const count = root.querySelector<HTMLElement>("[data-filter-count]")!;
+		const empty = root.querySelector<HTMLElement>("[data-filter-empty]")!;
+		const resets = root.querySelectorAll<HTMLButtonElement>("[data-filter-reset]");
+
+		const state = { q: "", cat: "", tags: new Set<string>() };
+
+		// Deep-linkable: /blog/?category=Crypto&tag=RSA&q=...
+		const params = new URLSearchParams(location.search);
+		state.q = params.get("q") ?? "";
+		state.cat = params.get("category") ?? "";
+		for (const t of params.getAll("tag")) state.tags.add(t);
+		q.value = state.q;
+
+		const apply = () => {
+			const terms = fold(state.q).split(/\s+/).filter(Boolean);
+			let shown = 0;
+			for (const c of cells) {
+				const tags: string[] = JSON.parse(c.dataset.tags || "[]");
+				const text = fold(c.dataset.text || "");
+				const ok =
+					(!state.cat || c.dataset.category === state.cat) &&
+					[...state.tags].every((t) => tags.includes(t)) &&
+					terms.every((t) => text.includes(t));
+				c.hidden = !ok;
+				if (ok) shown++;
+			}
+			count.textContent = String(shown);
+			empty.hidden = shown > 0;
+			const active = Boolean(state.q || state.cat || state.tags.size);
+			resets.forEach((r, i) => i === 0 && (r.hidden = !active));
+			for (const b of catBtns) b.setAttribute("aria-pressed", String(b.dataset.filterCat === state.cat));
+			for (const b of tagBtns) b.setAttribute("aria-pressed", String(state.tags.has(b.dataset.filterTag!)));
+
+			const next = new URLSearchParams();
+			if (state.q) next.set("q", state.q);
+			if (state.cat) next.set("category", state.cat);
+			for (const t of state.tags) next.append("tag", t);
+			const qs = next.toString();
+			history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
+		};
+
+		q.addEventListener("input", () => { state.q = q.value; apply(); });
+		for (const b of catBtns) b.addEventListener("click", () => { state.cat = b.dataset.filterCat!; apply(); });
+		for (const b of tagBtns) b.addEventListener("click", () => {
+			const t = b.dataset.filterTag!;
+			state.tags.has(t) ? state.tags.delete(t) : state.tags.add(t);
+			apply();
+		});
+		for (const r of resets) r.addEventListener("click", () => {
+			state.q = ""; state.cat = ""; state.tags.clear(); q.value = ""; apply();
+		});
+		apply();
+	}
+</script>

@@ -1,0 +1,48 @@
+---
+import Icon from "../components/Icon.astro";
+import PostCard from "../components/PostCard.astro";
+import Base from "../layouts/Base.astro";
+import { getPosts } from "../lib/posts";
+
+const recent = (await getPosts()).slice(0, 3);
+---
+
+<Base title="404" description="Không tìm thấy trang." noindex>
+	<section class="shell nf">
+		<div class="grid-field nf-grid" aria-hidden="true"></div>
+		<pre class="nf-dump" aria-hidden="true">0x00000404:  4e 4f 54 20 46 4f 55 4e 44  |NOT FOUND|</pre>
+		<h1 class="nf-code">404</h1>
+		<p class="nf-msg">Segmentation fault (core dumped) — trang này không tồn tại, hoặc đã bị dời đi.</p>
+		<div class="nf-actions">
+			<a href="/" class="btn btn-primary"><Icon name="arrow-left" size={16} /> Về trang chủ</a>
+			<button type="button" class="btn" data-search-open><Icon name="search" size={16} /> Tìm bài viết</button>
+		</div>
+	</section>
+	<section class="shell">
+		<p class="mono-label" style="margin-bottom: 1rem">Có thể bạn đang tìm</p>
+		<div class="nf-posts">
+			{recent.map((p, i) => <PostCard post={p} index={i} />)}
+		</div>
+	</section>
+</Base>
+
+<style>
+	.nf { position: relative; text-align: center; padding-block: clamp(4rem, 10vw, 7rem) 4rem; isolation: isolate; }
+	.nf-grid { position: absolute; inset: 0; z-index: -1; }
+	.nf-dump { margin: 0; font-family: var(--font-mono); font-size: 0.8rem; color: var(--fg-faint); white-space: pre-wrap; }
+	.nf-code {
+		margin-top: 0.5rem;
+		font-family: var(--font-mono);
+		font-size: clamp(5rem, 18vw, 9rem);
+		font-weight: 800;
+		letter-spacing: -0.06em;
+		line-height: 1;
+		background: linear-gradient(180deg, var(--fg), var(--accent));
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.nf-msg { margin: 1rem auto 0; max-width: 32rem; color: var(--fg-dim); }
+	.nf-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+	.nf-posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+</style>

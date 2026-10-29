@@ -1,25 +1,342 @@
 ---
+import { getEntry } from "astro:content";
+import Icon from "../components/Icon.astro";
+import { author, socials, themeForCategory } from "../config";
+import Base from "../layouts/Base.astro";
+import { formatDate } from "../lib/format";
+import {
+	categoriesOf,
+	getPosts,
+	groupByCtf,
+	statsOf,
+	urlOf,
+} from "../lib/posts";
 
-import { getEntry, render } from "astro:content";
-import Markdown from "@components/misc/Markdown.astro";
-import I18nKey from "../i18n/i18nKey";
-import { i18n } from "../i18n/translation";
-import MainGridLayout from "../layouts/MainGridLayout.astro";
+const entry = await getEntry("spec", "about");
+const { Content } = entry ? await entry.render() : { Content: null };
 
-const aboutPost = await getEntry("spec", "about");
+const posts = await getPosts();
+const stats = statsOf(posts);
+const ctfs = groupByCtf(posts);
+const categories = categoriesOf(posts);
 
-if (!aboutPost) {
-	throw new Error("About page content not found");
-}
-
-const { Content } = await render(aboutPost);
+const facts = [
+	{
+		icon: "school",
+		label: "Trường",
+		value: author.school,
+		href: author.schoolUrl,
+	},
+	{ icon: "pin", label: "Nơi ở", value: author.location },
+	{ icon: "cpu", label: "Mảng chính", value: author.role },
+	{
+		icon: "flag",
+		label: "CTF",
+		value: `${stats.ctfs} giải · ${stats.writeups} write-up`,
+	},
+] as const;
 ---
-<MainGridLayout title={i18n(I18nKey.about)} description={i18n(I18nKey.about)}>
-    <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
-        <div class="card-base z-10 px-9 py-6 relative w-full ">
-            <Markdown class="mt-2">
-                <Content />
-            </Markdown>
-        </div>
-    </div>
-</MainGridLayout>
+
+<Base title="About" description={`${author.name} — sinh viên ${author.schoolShort}. ${author.role}.`}>
+	<div class="shell about">
+		<aside class="profile">
+			<div class="profile-card card rise">
+				<div class="avatar-wrap">
+					<img src={author.avatar} alt={`Ảnh đại diện của ${author.name}`} width="160" height="160" />
+					<span class="online" title="Đang học">●</span>
+				</div>
+				<h1 class="p-name">{author.name}</h1>
+				<p class="p-handle">@{author.handle}</p>
+				<a href={author.schoolUrl} target="_blank" rel="noopener" class="p-school">
+					<Icon name="school" size={15} />
+					{author.schoolShort}
+				</a>
+				<p class="p-motto">"{author.motto}"</p>
+
+				<ul class="links">
+					{
+						socials.map((s) => (
+							<li>
+								<a href={s.url} target="_blank" rel="noopener noreferrer">
+									<Icon name={s.icon as any} size={16} />
+									<span class="l-name">{s.name}</span>
+									<span class="l-handle">{s.handle}</span>
+									<Icon name="arrow-up-right" size={14} class="l-go" />
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</div>
+		</aside>
+
+		<div class="main">
+			<header class="rise" style="animation-delay: 60ms">
+				<p class="page-eyebrow"><Icon name="terminal" size={14} /> whoami</p>
+				<h2 class="headline">
+					Sinh viên UIT, chơi CTF<br /> và thích tháo rời mọi thứ.
+				</h2>
+				<p class="lede">{author.bio}</p>
+				<p class="lede en">{author.bioEn}</p>
+			</header>
+
+			<dl class="facts rise" style="animation-delay: 120ms">
+				{
+					facts.map((f) => (
+						<div class="fact">
+							<dt>
+								<Icon name={f.icon} size={15} />
+								{f.label}
+							</dt>
+							<dd>
+								{"href" in f && f.href ? (
+									<a href={f.href} target="_blank" rel="noopener">
+										{f.value}
+									</a>
+								) : (
+									f.value
+								)}
+							</dd>
+						</div>
+					))
+				}
+			</dl>
+
+			<section class="block rise" style="animation-delay: 160ms">
+				<h3 class="mono-label">Đang tập trung vào</h3>
+				<div class="focus-grid">
+					{
+						author.focus.map((f, i) => (
+							<div class="focus card">
+								<span class="focus-idx">0{i + 1}</span>
+								<span>{f}</span>
+							</div>
+						))
+					}
+				</div>
+			</section>
+
+			{Content && (
+				<section class="block prose">
+					<Content />
+				</section>
+			)}
+
+			{
+				ctfs.length > 0 && (
+					<section class="block">
+						<h3 class="mono-label">Các giải đã viết write-up</h3>
+						<ol class="ctf-timeline">
+							{ctfs.map((g) => (
+								<li>
+									<span class="dot" aria-hidden="true" />
+									<div>
+										<p class="ct-date">{formatDate(g.items[0].data.published)}</p>
+										<p class="ct-name">{g.key}</p>
+										<ul class="ct-posts">
+											{g.items.map((p) => (
+												<li>
+													<a href={urlOf(p)}>{p.data.title}</a>
+												</li>
+											))}
+										</ul>
+									</div>
+								</li>
+							))}
+						</ol>
+					</section>
+				)
+			}
+
+			<section class="block">
+				<h3 class="mono-label">Blog viết về</h3>
+				<div class="chip-row">
+					{
+						categories.map((c) => (
+							<a href={`/blog/?category=${encodeURIComponent(c.name)}`} class="chip chip-accent" style={`--chip-h: ${themeForCategory(c.name).hue}`}>
+								{c.name} <span class="chip-count">{c.count}</span>
+							</a>
+						))
+					}
+				</div>
+			</section>
+		</div>
+	</div>
+</Base>
+
+<style>
+	.about {
+		display: grid;
+		grid-template-columns: 20rem 1fr;
+		gap: clamp(2rem, 5vw, 4rem);
+		padding-top: clamp(2.5rem, 6vw, 4.5rem);
+		align-items: start;
+	}
+	.profile { position: sticky; top: calc(var(--nav-height) + 1.5rem); }
+	.profile-card {
+		padding: 1.75rem 1.5rem 1.25rem;
+		text-align: center;
+		position: relative;
+		overflow: hidden;
+	}
+	.profile-card::before {
+		content: "";
+		position: absolute;
+		inset: 0 0 auto 0;
+		height: 110px;
+		background: linear-gradient(135deg, hsl(var(--accent-h) 80% 60% / 0.25), hsl(200 85% 60% / 0.15));
+		border-bottom: 1px solid var(--line);
+	}
+	.avatar-wrap {
+		position: relative;
+		width: 132px;
+		margin: 0.5rem auto 0;
+	}
+	.avatar-wrap img {
+		width: 132px;
+		height: 132px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 4px solid var(--surface);
+		box-shadow: 0 0 0 1px var(--line), var(--shadow);
+	}
+	.online {
+		position: absolute;
+		right: 10px;
+		bottom: 8px;
+		display: grid;
+		place-items: center;
+		width: 22px;
+		height: 22px;
+		font-size: 0.85rem;
+		line-height: 1;
+		color: hsl(145 70% 55%);
+		background: var(--surface);
+		border-radius: 50%;
+	}
+	.p-name { margin-top: 1rem; font-size: 1.45rem; letter-spacing: -0.025em; color: var(--fg); }
+	.p-handle { margin: 0.15rem 0 0; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); }
+	.p-school {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-top: 0.9rem;
+		padding: 0.35rem 0.75rem;
+		font-size: 0.8rem;
+		font-weight: 550;
+		color: hsl(215 95% 72%);
+		background: hsl(215 90% 60% / 0.1);
+		border: 1px solid hsl(215 90% 60% / 0.28);
+		border-radius: 99px;
+	}
+	:global(:root[data-theme="light"]) .p-school { color: hsl(215 80% 42%); }
+	.p-motto { margin: 1rem 0 0; font-size: 0.85rem; font-style: italic; color: var(--fg-faint); }
+
+	.links {
+		list-style: none;
+		margin: 1.4rem 0 0;
+		padding: 1rem 0 0;
+		border-top: 1px solid var(--line);
+		display: grid;
+		gap: 0.2rem;
+		text-align: left;
+	}
+	.links a {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		padding: 0.55rem 0.6rem;
+		border-radius: 9px;
+		font-size: 0.875rem;
+		color: var(--fg-dim);
+		transition: background 160ms, color 160ms;
+	}
+	.links a:hover { background: var(--surface-2); color: var(--fg); }
+	.l-name { font-weight: 550; }
+	.l-handle { margin-left: auto; font-family: var(--font-mono); font-size: 0.72rem; color: var(--fg-faint); }
+	.links :global(.l-go) { color: var(--fg-faint); }
+
+	.headline {
+		font-size: clamp(1.9rem, 4.2vw, 2.8rem);
+		letter-spacing: -0.035em;
+		line-height: 1.12;
+		color: var(--fg);
+	}
+	.lede { margin: 1.2rem 0 0; max-width: 42rem; font-size: 1.05rem; color: var(--fg-dim); }
+	.lede.en { margin-top: 0.8rem; font-size: 0.95rem; color: var(--fg-faint); font-style: italic; }
+
+	.facts {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0;
+		margin: 2.25rem 0 0;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+		overflow: hidden;
+	}
+	.fact { padding: 1rem 1.2rem; border-bottom: 1px solid var(--line); }
+	.fact:nth-child(odd) { border-right: 1px solid var(--line); }
+	.fact:nth-last-child(-n + 2) { border-bottom: none; }
+	.fact dt {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--fg-faint);
+	}
+	.fact dd { margin: 0.35rem 0 0; font-weight: 550; color: var(--fg); font-size: 0.95rem; }
+	.fact dd a:hover { color: var(--accent); }
+
+	.block { margin-top: 3rem; }
+	.block > .mono-label { margin: 0 0 1rem; }
+	.focus-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+	.focus {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		padding: 0.95rem 1.1rem;
+		font-weight: 560;
+		color: var(--fg);
+	}
+	.focus-idx { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); }
+
+	.ctf-timeline {
+		list-style: none;
+		margin: 0;
+		padding: 0 0 0 1.25rem;
+		border-left: 1px solid var(--line);
+		display: grid;
+		gap: 1.5rem;
+	}
+	.ctf-timeline > li { position: relative; }
+	.dot {
+		position: absolute;
+		left: calc(-1.25rem - 5px);
+		top: 0.35rem;
+		width: 9px;
+		height: 9px;
+		border-radius: 50%;
+		background: hsl(25 95% 60%);
+		box-shadow: 0 0 0 4px var(--bg);
+	}
+	.ct-date { margin: 0; font-family: var(--font-mono); font-size: 0.72rem; color: var(--fg-faint); }
+	.ct-name { margin: 0.15rem 0 0; font-weight: 650; color: var(--fg); }
+	.ct-posts { margin: 0.35rem 0 0; padding: 0; list-style: none; font-size: 0.9rem; }
+	.ct-posts a { color: var(--accent); }
+	.ct-posts a:hover { text-decoration: underline; }
+	.chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+	@media (max-width: 900px) {
+		.about { grid-template-columns: 1fr; }
+		.profile { position: static; max-width: 26rem; }
+	}
+	@media (max-width: 560px) {
+		.facts, .focus-grid { grid-template-columns: 1fr; }
+		.fact:nth-child(odd) { border-right: none; }
+		.fact:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+	}
+</style>

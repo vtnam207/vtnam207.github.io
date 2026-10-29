@@ -1,18 +1,19 @@
-# About
+## Mình là ai
 
-## vtnam207
+Mình là **Vũ Thành Nam** (vtnam207), hiện đang học tại **Trường Đại học Công nghệ Thông tin — ĐHQG-HCM (UIT, VNUHCM)**.
 
-CTF player and reverse-engineering learner.
+Mình chơi CTF, chủ yếu ở mảng **reverse engineering**: mở một binary chưa biết gì, đọc assembly, tìm chỗ nó kiểm tra flag, rồi tìm cách đi ngược lại. Thỉnh thoảng mình lấn sang crypto khi một bài RE hoá ra là một bài toán số học trá hình.
 
-I write about CTF challenges, reverse engineering, debugging, low-level programming, and the things I learn while breaking down binaries.
+## Blog này để làm gì
 
-### Focus
+Mỗi bài ở đây là một write-up hoặc một ghi chú mình viết lại sau khi học được thứ gì đó. Mình cố viết theo đúng trình tự đã nghĩ — kể cả những hướng đi sai — vì phần đó thường là phần hữu ích nhất cho người đọc sau.
 
-- Reverse Engineering
-- CTF / Pwn / Rev
-- Windows internals
-- Low-level programming
+- **Write-up CTF** — từ lúc chạy `file` cho tới lúc in ra flag.
+- **Reverse engineering** — anti-debug, payload tự giải mã, VM tự chế, Windows/Linux internals.
+- **Crypto** — RSA và những lỗi triển khai khiến nó gãy.
 
-### Links
+## Ngoài lề
 
-- [GitHub](https://github.com/vtnam207)
+> Better to be curious than certain.
+
+Nếu bạn thấy sai sót trong bài, hoặc muốn trao đổi về một challenge, cứ nhắn mình qua Discord hoặc Facebook ở bên cạnh.

@@ -1,0 +1,117 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+	headings: MarkdownHeading[];
+	/** Deepest heading level shown. */
+	depth?: number;
+}
+
+const { headings, depth = 3 } = Astro.props;
+const items = headings.filter((h) => h.depth >= 2 && h.depth <= depth);
+// Strip the "#" anchor text rehype-autolink-headings prepends.
+const clean = (t: string) => t.replace(/^#\s*/, "");
+---
+
+{
+	items.length > 1 && (
+		<nav class="toc" aria-label="Mục lục" data-toc>
+			<p class="mono-label toc-label">Mục lục</p>
+			<div class="toc-track">
+				<span class="toc-progress" data-toc-progress />
+				<ol>
+					{items.map((h) => (
+						<li class={`d${h.depth}`}>
+							<a href={`#${h.slug}`} data-toc-link={h.slug}>
+								{clean(h.text)}
+							</a>
+						</li>
+					))}
+				</ol>
+			</div>
+		</nav>
+	)
+}
+
+<style>
+	.toc {
+		font-size: 0.84rem;
+	}
+	.toc-label {
+		margin: 0 0 0.9rem;
+	}
+	.toc-track {
+		position: relative;
+		padding-left: 1rem;
+		border-left: 1px solid var(--line);
+	}
+	.toc-progress {
+		position: absolute;
+		left: -1px;
+		top: 0;
+		width: 1px;
+		height: 0;
+		background: var(--accent);
+		transition: height 120ms linear;
+	}
+	ol {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.1rem;
+	}
+	li.d3 { padding-left: 0.85rem; }
+	a {
+		display: block;
+		padding: 0.28rem 0;
+		line-height: 1.4;
+		color: var(--fg-faint);
+		transition: color 160ms var(--ease-out);
+	}
+	a:hover { color: var(--fg); }
+	a.active {
+		color: var(--accent);
+		font-weight: 550;
+	}
+</style>
+
+<script>
+	function initToc() {
+		const toc = document.querySelector<HTMLElement>("[data-toc]");
+		if (!toc) return;
+		const links = [...toc.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
+		const progress = toc.querySelector<HTMLElement>("[data-toc-progress]");
+		const targets = links
+			.map((a) => document.getElementById(a.dataset.tocLink!))
+			.filter((el): el is HTMLElement => Boolean(el));
+		const article = document.querySelector<HTMLElement>("[data-article]");
+
+		let ticking = false;
+		const update = () => {
+			ticking = false;
+			const offset = window.innerHeight * 0.25;
+			let current = 0;
+			for (let i = 0; i < targets.length; i++) {
+				if (targets[i].getBoundingClientRect().top - offset <= 0) current = i;
+			}
+			links.forEach((a, i) => a.classList.toggle("active", i === current));
+
+			if (progress && article) {
+				const r = article.getBoundingClientRect();
+				const ratio = Math.min(1, Math.max(0, (window.innerHeight * 0.3 - r.top) / r.height));
+				progress.style.height = `${ratio * 100}%`;
+			}
+		};
+		const onScroll = () => {
+			if (!ticking) {
+				ticking = true;
+				requestAnimationFrame(update);
+			}
+		};
+		update();
+		window.addEventListener("scroll", onScroll, { passive: true });
+		window.addEventListener("resize", onScroll);
+	}
+	initToc();
+</script>
